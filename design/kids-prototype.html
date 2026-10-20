@@ -1,0 +1,2078 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>財富積木 Kids 原型</title>
+<meta name="theme-color" content="#F7F2E8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chiron+GoRound+TC:wght@400;500;700;800&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   Wealth Blocks 財富積木 — Kids MVP 視覺與操作原型
+   色彩依規格書 7.2；--ink-2 / --coral-ink / --teal-ink 為了小字對比度加深
+   ========================================================= */
+:root{
+  --cream:#F7F2E8; --cream-2:#EFE7D8; --cream-3:#E4D9C4;
+  --navy:#20334F; --navy-2:#2C4466; --navy-deep:#16243A; --navy-soft:#E3E8F0;
+  --yellow:#FFD34E; --yellow-deep:#E2B22F; --yellow-soft:#FFF1C2;
+  --teal:#56B7A5; --teal-deep:#3F9886; --teal-soft:#DDF1EC; --teal-ink:#2D7A6B;
+  --white:#FFFFFF;
+  --slate:#6E7C8F; --ink-2:#56647A;
+  --coral:#C95D43; --coral-ink:#A8452E; --coral-soft:#F8E3DC;
+  --line:rgba(32,51,79,.12);
+  --shadow-card:0 1px 0 rgba(32,51,79,.05), 0 12px 28px -18px rgba(32,51,79,.35);
+  --r-sm:10px; --r-md:14px; --r-lg:20px; --r-xl:28px;
+  --font-zh:"Chiron GoRound TC","Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --font-num:"Fredoka",var(--font-zh);
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--cream);color:var(--navy);font-family:var(--font-zh);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit}
+h1,h2,h3,h4{line-height:1.3;margin:0}
+p{margin:0}
+ul,ol{margin:0;padding:0;list-style:none}
+.num{font-family:var(--font-num);font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+:focus-visible{outline:3px solid var(--navy);outline-offset:3px;border-radius:8px}
+.ic{width:20px;height:20px;flex:none}
+
+/* ---------- 預覽工具列（僅原型用） ---------- */
+.stage{min-height:100dvh;display:flex;flex-direction:column}
+.preview-bar{display:none}
+.device{position:relative;width:100%;height:100dvh;overflow:hidden;background:var(--cream);container:app / inline-size}
+@media (min-width:900px){
+  .preview-bar{display:flex;align-items:center;gap:16px;height:52px;padding:0 20px;background:var(--navy-deep);color:#C9D3E1;font-size:14px;flex:none}
+  .pv-title b{color:#fff;font-family:var(--font-num);font-weight:600;margin-right:6px}
+  .pv-seg{display:flex;gap:4px;background:rgba(255,255,255,.08);padding:4px;border-radius:12px;margin-left:auto}
+  .pv-seg button{border:0;background:none;color:#C9D3E1;padding:6px 14px;border-radius:9px;cursor:pointer;font-size:14px;font-weight:700}
+  .pv-seg button[aria-pressed="true"]{background:var(--yellow);color:var(--navy)}
+  .pv-note{opacity:.75}
+  .pv-reset{border:1px solid rgba(255,255,255,.25);background:none;color:#fff;padding:6px 12px;border-radius:9px;cursor:pointer;font-size:14px}
+  .preview-bar :focus-visible{outline-color:var(--yellow)}
+  body[data-preview="phone"] .stage,body[data-preview="tablet"] .stage{background:#E6DECD}
+  body[data-preview="phone"] .device{width:390px;height:min(844px,calc(100dvh - 92px));margin:20px auto;border-radius:44px;box-shadow:0 0 0 10px var(--navy-deep),0 40px 60px -30px rgba(22,36,58,.6)}
+  body[data-preview="tablet"] .device{width:min(820px,calc(100vw - 60px));height:min(1100px,calc(100dvh - 92px));margin:20px auto;border-radius:30px;box-shadow:0 0 0 10px var(--navy-deep),0 40px 60px -30px rgba(22,36,58,.6)}
+  body[data-preview="desktop"] .device{height:calc(100dvh - 52px)}
+}
+
+/* ---------- App 版面 ---------- */
+.app{height:100%;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"top" "main" "tab"}
+.topbar{grid-area:top}
+.main{grid-area:main;overflow-y:auto;overscroll-behavior:contain;padding:14px 16px 32px;scroll-behavior:smooth}
+.tabbar{grid-area:tab}
+.sidenav{grid-area:side;display:none}
+.rail{grid-area:rail;display:none}
+.app.is-building .tabbar{display:none}
+@container app (min-width:768px){
+  .app{grid-template-columns:96px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"top top" "side main"}
+  .app .tabbar{display:none}
+  .app .sidenav{display:flex}
+  .main{padding:24px 28px 40px}
+}
+@container app (min-width:1180px){
+  .app{grid-template-columns:228px minmax(0,1fr) 340px;grid-template-areas:"top top top" "side main rail"}
+  .rail{display:block;overflow-y:auto;border-left:1px solid var(--line);padding:22px 20px 40px}
+  .main{padding:26px 36px 48px}
+}
+
+/* ---------- Top bar ---------- */
+.topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;padding-top:max(10px,env(safe-area-inset-top));border-bottom:1px solid var(--line);background:var(--cream);position:relative;z-index:5}
+.brand{display:flex;align-items:center;gap:9px;color:var(--navy);text-decoration:none;border-radius:10px}
+.brand svg{width:34px;height:34px;flex:none}
+.brand-text,.mode-badge,.top-level{white-space:nowrap}
+.brand-text b{display:block;font-size:17px;font-weight:800;letter-spacing:.06em;line-height:1.15}
+.brand-text small{display:block;font-family:var(--font-num);font-size:11px;font-weight:500;color:var(--ink-2);letter-spacing:.08em;line-height:1.15}
+.mode-badge{display:none;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;background:var(--teal-soft);color:var(--teal-ink);font-size:13px;font-weight:700}
+.top-spacer{flex:1}
+.top-level{display:none;align-items:center;gap:10px;font-size:14px;font-weight:700;margin-right:6px}
+.top-level .xpbar{width:120px}
+.lv-badge{display:inline-grid;place-items:center;height:26px;padding:0 9px;border-radius:8px;background:var(--navy);color:var(--yellow);font-family:var(--font-num);font-weight:600;font-size:14px;box-shadow:0 3px 0 var(--navy-deep)}
+.coinpill{display:inline-flex;align-items:center;gap:6px;height:42px;padding:0 14px 0 7px;border:0;border-radius:999px;background:#fff;cursor:pointer;box-shadow:inset 0 0 0 1.5px var(--line),0 3px 0 rgba(32,51,79,.08);font-family:var(--font-num);font-weight:600;font-size:19px;transition:transform .15s}
+.coinpill svg{width:28px;height:28px}
+.coinpill:hover{box-shadow:inset 0 0 0 1.5px var(--navy),0 3px 0 rgba(32,51,79,.12)}
+.coinpill.bump{animation:bump .6s ease}
+@keyframes bump{30%{transform:scale(1.14)}60%{transform:scale(.97)}}
+.avatar-btn{display:inline-flex;align-items:center;gap:8px;border:0;background:none;padding:0;cursor:pointer;min-height:44px;border-radius:999px}
+.avatar-name{display:none;font-weight:700}
+.av{display:inline-grid;place-items:center;width:42px;height:42px;border-radius:50%;background:var(--yellow-soft);box-shadow:inset 0 0 0 2px #fff,0 0 0 1.5px var(--line);overflow:hidden;flex:none}
+.av svg{width:84%;height:84%;margin-top:14%}
+@container app (min-width:768px){
+  .topbar{padding:12px 24px}
+  .mode-badge{display:inline-flex}
+  .top-level{display:flex}
+}
+@container app (min-width:1180px){
+  .avatar-name{display:inline}
+  .avatar-btn{padding-right:6px}
+}
+
+/* ---------- 導覽 ---------- */
+.sidenav{flex-direction:column;gap:6px;padding:16px 10px;border-right:1px solid var(--line);overflow-y:auto}
+.navlink{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;min-height:66px;border:0;border-radius:16px;background:none;cursor:pointer;font-size:13px;font-weight:700;color:var(--ink-2);position:relative;transition:background .15s,color .15s}
+.navlink .ic{width:24px;height:24px}
+.navlink:hover{background:rgba(32,51,79,.06);color:var(--navy)}
+.navlink[aria-current="page"]{background:var(--navy);color:#fff;box-shadow:0 4px 0 var(--navy-deep)}
+.navlink[aria-current="page"] .ic{color:var(--yellow)}
+.navlink:focus-visible{outline-offset:2px}
+.nav-sep{height:1px;background:var(--line);margin:8px 6px}
+.nav-dot{position:absolute;top:6px;right:16px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--coral);color:#fff;font-family:var(--font-num);font-size:11px;line-height:18px;text-align:center}
+@container app (min-width:1180px){
+  .sidenav{padding:22px 16px}
+  .navlink{flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 16px;min-height:52px;font-size:16px}
+  .nav-dot{position:static;margin-left:auto}
+}
+.tabbar{display:grid;grid-template-columns:repeat(5,1fr);background:#fff;border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom));position:relative;z-index:5}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:none;padding:2px 0;min-height:56px;font-size:12px;font-weight:700;color:var(--ink-2);cursor:pointer;position:relative}
+.tab .ti{display:grid;place-items:center;width:54px;height:30px;border-radius:999px;transition:background .2s}
+.tab .ic{width:22px;height:22px}
+.tab[aria-current="page"]{color:var(--navy)}
+.tab[aria-current="page"] .ti{background:var(--yellow)}
+.tab .nav-dot{top:0;right:calc(50% - 26px)}
+
+/* ---------- 按鈕 ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 20px;border:0;border-radius:var(--r-md);font-weight:700;font-size:16px;line-height:1.2;cursor:pointer;text-decoration:none;white-space:nowrap;transition:transform .12s ease,box-shadow .12s ease,background .15s}
+.btn .ic{width:20px;height:20px}
+.btn-primary{background:var(--yellow);color:var(--navy);box-shadow:0 4px 0 var(--yellow-deep)}
+.btn-primary:hover{background:#FFDA68}
+.btn-secondary{background:#fff;color:var(--navy);box-shadow:inset 0 0 0 2px var(--navy),0 4px 0 var(--navy)}
+.btn-secondary:hover{background:var(--cream)}
+.btn-success{background:var(--teal);color:var(--navy);box-shadow:0 4px 0 var(--teal-deep)}
+.btn-success:hover{background:#66C0AF}
+.btn-danger{background:var(--coral);color:#fff;box-shadow:0 4px 0 var(--coral-ink)}
+.btn-ghost{background:none;color:var(--navy);min-height:44px;padding:0 12px}
+.btn-ghost:hover{background:rgba(32,51,79,.06)}
+.btn:not([disabled]):active{transform:translateY(3px)}
+.btn-primary:not([disabled]):active{box-shadow:0 1px 0 var(--yellow-deep)}
+.btn-secondary:not([disabled]):active{box-shadow:inset 0 0 0 2px var(--navy),0 1px 0 var(--navy)}
+.btn-success:not([disabled]):active{box-shadow:0 1px 0 var(--teal-deep)}
+.btn[disabled]{background:var(--cream-3);color:#7A8597;box-shadow:0 4px 0 #D2C6AE;cursor:not-allowed}
+.btn-sm{min-height:40px;padding:0 14px;font-size:15px;border-radius:12px}
+.btn[aria-busy="true"]::after{content:"";width:16px;height:16px;border-radius:50%;border:2.5px solid currentColor;border-right-color:transparent;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.link{border:0;background:none;padding:6px 4px;color:var(--navy);font-weight:700;font-size:14px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1.5px;text-decoration-color:var(--yellow-deep)}
+.icon-btn{display:inline-grid;place-items:center;width:44px;height:44px;border:0;border-radius:12px;background:#fff;cursor:pointer;box-shadow:inset 0 0 0 1.5px var(--line);flex:none}
+.icon-btn:hover{box-shadow:inset 0 0 0 1.5px var(--navy)}
+
+/* ---------- 共用元件 ---------- */
+.card{background:#fff;border-radius:var(--r-lg);box-shadow:var(--shadow-card);border:1px solid rgba(32,51,79,.06)}
+.view-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.view-head h1{font-size:24px;font-weight:800;letter-spacing:.03em}
+.view-head p{margin-top:4px;color:var(--ink-2);font-size:15px;max-width:520px}
+@container app (min-width:768px){.view-head h1{font-size:28px}}
+.sec-title{display:flex;align-items:center;justify-content:space-between;font-size:17px;font-weight:800;margin:0 0 10px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;margin:0 -2px 14px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;height:38px;padding:0 14px;border:0;border-radius:999px;background:#fff;box-shadow:inset 0 0 0 1.5px var(--line);font-size:15px;font-weight:700;color:var(--ink-2);cursor:pointer}
+.chip:hover{color:var(--navy);box-shadow:inset 0 0 0 1.5px var(--navy)}
+.chip[aria-pressed="true"]{background:var(--navy);color:#fff;box-shadow:none}
+.xpbar{display:block;height:10px;border-radius:999px;background:var(--cream-3);overflow:hidden;box-shadow:inset 0 1px 2px rgba(32,51,79,.12)}
+.xpbar i{display:block;height:100%;border-radius:inherit;background:var(--yellow);box-shadow:inset 0 -3px 0 var(--yellow-deep);transition:width .5s ease}
+.cat{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px 0 8px;border-radius:8px;font-size:13px;font-weight:700;flex:none}
+.cat .ic{width:16px;height:16px}
+.cat-earn{background:var(--yellow-soft);color:#6B4E00}
+.cat-spend{background:var(--coral-soft);color:var(--coral-ink)}
+.cat-save{background:var(--teal-soft);color:var(--teal-ink)}
+.cat-plan{background:var(--navy-soft);color:var(--navy)}
+.cat-share{background:var(--coral-soft);color:var(--coral-ink)}
+.cat-risk{background:var(--cream-2);color:var(--ink-2)}
+.coin-sm{width:18px;height:18px;flex:none}
+.badge{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;border-radius:7px;font-size:12px;font-weight:700;background:var(--cream-2);color:var(--ink-2);white-space:nowrap}
+.badge .ic{width:14px;height:14px}
+.badge-ok{background:var(--teal-soft);color:var(--teal-ink)}
+.badge-lock{background:var(--navy-soft);color:var(--navy)}
+.badge-goal{background:var(--yellow-soft);color:#6B4E00}
+.empty{padding:22px;text-align:center;color:var(--ink-2);font-size:15px}
+.empty .btn{margin-top:12px}
+
+/* 積木進度條：一塊積木 = 10% */
+.bricks{display:flex;gap:4px;padding-top:5px}
+.bricks i{position:relative;flex:1;height:16px;border-radius:4px;background:var(--cream-3)}
+.bricks i::before{content:"";position:absolute;top:-4px;left:50%;width:44%;height:5px;transform:translateX(-50%);border-radius:2px 2px 0 0;background:var(--cream-3)}
+.bricks i.on,.bricks i.on::before{background:var(--teal)}
+.bricks i.on{box-shadow:inset 0 -3px 0 var(--teal-deep)}
+.bricks i.part{background:linear-gradient(90deg,var(--teal) var(--p),var(--cream-3) var(--p))}
+.bricks.yellow i.on,.bricks.yellow i.on::before{background:var(--yellow)}
+.bricks.yellow i.on{box-shadow:inset 0 -3px 0 var(--yellow-deep)}
+.bricks.yellow i.part{background:linear-gradient(90deg,var(--yellow) var(--p),var(--cream-3) var(--p))}
+
+/* ---------- 積木島 ---------- */
+.xpstrip{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:14px;font-weight:700}
+.xpstrip .xpbar{flex:1}
+.xpstrip .num{font-size:14px;color:var(--ink-2)}
+@container app (min-width:768px){.xpstrip{display:none}}
+.board-wrap{max-width:600px;margin:0 auto}
+.board-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px}
+.board-title{font-size:20px;font-weight:800;letter-spacing:.03em}
+.board-meta{font-size:14px;color:var(--ink-2)}
+.board{position:relative;aspect-ratio:1;padding:4.5%;border-radius:26px;background:radial-gradient(120% 95% at 50% 42%,#C4E9EE 0%,#A4DAE3 55%,#8DCDD8 100%);box-shadow:inset 0 0 0 1.5px rgba(32,51,79,.08),0 14px 30px -20px rgba(32,51,79,.55);container-type:inline-size;overflow:hidden;user-select:none;-webkit-user-select:none}
+.wave{position:absolute;width:9%;opacity:.8;pointer-events:none}
+.boat{position:absolute;width:10%;pointer-events:none;animation:bob 3.2s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-6%) rotate(-3deg)}}
+.grid{position:relative;width:100%;height:100%}
+.cells{position:absolute;inset:0;display:grid;grid-template-columns:repeat(9,1fr);grid-template-rows:repeat(9,1fr)}
+.cell{display:block}
+.cell.l{background:radial-gradient(circle at 50% 43%,#BCE0A0 0 18%,transparent 19%),radial-gradient(circle at 50% 55%,#80B567 0 18%,transparent 19%),#9DCB80}
+.cell.tl{border-top-left-radius:36%}.cell.tr{border-top-right-radius:36%}
+.cell.bl{border-bottom-left-radius:36%}.cell.br{border-bottom-right-radius:36%}
+.cell.eb{box-shadow:0 1.9cqi 0 #73A85A,0 3cqi 0 rgba(32,51,79,.10)}
+.gridlines{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .2s;background:linear-gradient(to right,rgba(32,51,79,.13) 1px,transparent 1px) 0 0/calc(100%/9) 100%,linear-gradient(to bottom,rgba(32,51,79,.13) 1px,transparent 1px) 0 0/100% calc(100%/9)}
+.building .gridlines{opacity:1}
+.objs{position:absolute;inset:0}
+.obj{position:absolute;padding:0;border:0;background:none;cursor:pointer;pointer-events:none;border-radius:6px}
+.obj svg{display:block;width:100%;height:100%;overflow:visible}
+.obj svg>*{pointer-events:visiblePainted}
+.obj:focus-visible{outline-offset:0}
+.obj:hover svg{filter:brightness(1.05)}
+.grid.placing .obj svg>*{pointer-events:none}
+.obj.sel svg{filter:drop-shadow(0 2px 0 var(--yellow)) drop-shadow(0 -2px 0 var(--yellow)) drop-shadow(2px 0 0 var(--yellow)) drop-shadow(-2px 0 0 var(--yellow)) drop-shadow(0 4px 6px rgba(32,51,79,.35));animation:selbob 1.2s ease-in-out infinite}
+@keyframes selbob{50%{transform:translateY(-3%)}}
+.obj.moving{opacity:.35}
+.obj.moving svg{animation:none}
+.obj.pop svg{animation:drop .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes drop{0%{transform:translateY(-30%);opacity:0}60%{opacity:1}100%{transform:none}}
+.grid.placing{touch-action:none;cursor:crosshair}
+.grid:focus-visible{outline:3px solid var(--navy);outline-offset:4px;border-radius:14px}
+.fp{position:absolute;z-index:900;pointer-events:none;border-radius:12%;box-shadow:inset 0 0 0 .7cqi currentColor;background:color-mix(in srgb,currentColor 24%,transparent)}
+.fp.ok{color:var(--teal-deep)}
+.fp.bad{color:var(--coral)}
+.ghost{position:absolute;z-index:901;pointer-events:none;opacity:.9;transition:left .08s,bottom .08s}
+.ghost svg{display:block;width:100%;height:100%;overflow:visible}
+.ghost.bad{opacity:.5;filter:grayscale(.5)}
+.fab{position:absolute;right:3.2%;bottom:3.2%;z-index:950;min-height:46px;padding:0 16px}
+.island-name{position:absolute;left:3.5%;top:3.5%;z-index:950}
+
+/* 建造工具列 */
+.tray{max-width:600px;margin:14px auto 0;padding:14px;background:#fff;border-radius:var(--r-lg);box-shadow:var(--shadow-card);border:1px solid rgba(32,51,79,.06)}
+.tray-head{display:flex;align-items:flex-start;gap:12px}
+.tray-head b{font-size:17px}
+.tray-status{font-size:14px;color:var(--ink-2);margin-top:2px;min-height:22px}
+.tray-status.ok{color:var(--teal-ink);font-weight:700}
+.tray-status.bad{color:var(--coral-ink);font-weight:700}
+.tray-items{display:flex;gap:10px;overflow-x:auto;padding:12px 2px 4px;scrollbar-width:thin}
+.ichip{position:relative;flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;width:86px;padding:8px 6px 6px;border:2px solid transparent;border-radius:16px;background:var(--cream);cursor:pointer;font-size:13px;font-weight:700}
+.ichip svg{height:46px;width:56px}
+.ichip:hover{border-color:var(--line)}
+.ichip[aria-pressed="true"]{border-color:var(--navy);background:var(--yellow-soft)}
+.ichip .cnt{position:absolute;top:4px;right:5px;min-width:24px;height:20px;padding:0 6px;border-radius:999px;background:var(--navy);color:#fff;font-family:var(--font-num);font-size:12px;line-height:20px}
+.tray-actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.tray-actions .btn{flex:1}
+.view-island.building{min-height:100%;display:flex;flex-direction:column}
+.view-island.building .board-wrap{width:100%;margin-bottom:14px}
+.view-island.building .tray{width:100%;margin:0 auto}
+@container app (min-width:768px){
+  .view-island.building .board-wrap,.view-island.building .tray{max-width:max(360px,min(600px,calc(100dvh - 460px)))}
+}
+@container app (max-width:767px){
+  .app.is-building .main{padding-bottom:0}
+  .view-island.building .tray{width:auto;max-width:none;margin:auto -16px 0}
+  .tray{position:sticky;bottom:0;border-radius:22px 22px 0 0;padding-bottom:calc(14px + env(safe-area-inset-bottom));box-shadow:0 -10px 28px -16px rgba(32,51,79,.45)}
+}
+
+/* 首頁卡片（手機/平板；桌面改放右側欄） */
+.island-cards{display:grid;gap:18px;max-width:600px;margin:20px auto 0}
+@container app (min-width:768px){.island-cards{grid-template-columns:1fr 1fr}.island-cards .span-all{grid-column:1/-1}}
+@container app (min-width:1180px){.island-cards{display:none}}
+.welcome{display:flex;gap:14px;align-items:center;padding:16px;border-radius:var(--r-lg);background:var(--navy);color:#fff;box-shadow:0 5px 0 var(--navy-deep)}
+.welcome h2{font-size:18px;color:var(--yellow)}
+.welcome p{font-size:15px;color:#DCE3EE;margin:4px 0 12px}
+.welcome-art{display:flex;align-items:flex-end;flex:none;width:76px;height:72px;padding:4px;border-radius:16px;background:rgba(255,255,255,.08)}
+.welcome-art svg{height:100%;width:50%}
+.nudge{display:flex;align-items:center;gap:12px;padding:14px 16px}
+.nudge p{flex:1;font-size:15px;font-weight:700}
+
+/* ---------- 任務卡 ---------- */
+.qgrid{display:grid;gap:14px}
+@container app (min-width:768px){.qgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.qcard{position:relative;display:flex;flex-direction:column;gap:6px;padding:16px;background:#fff;border-radius:var(--r-lg);box-shadow:var(--shadow-card);border:1px solid rgba(32,51,79,.06);overflow:hidden}
+.qcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--qc,var(--yellow))}
+.qcard.c-earn{--qc:var(--yellow)}.qcard.c-spend{--qc:var(--coral)}.qcard.c-save{--qc:var(--teal)}.qcard.c-plan{--qc:var(--navy)}.qcard.c-share{--qc:#E0907A}.qcard.c-risk{--qc:var(--slate)}
+.qcard-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.qcard h3{font-size:19px;font-weight:800;margin-top:4px}
+.qcard p{font-size:15px;color:var(--ink-2)}
+.qcard-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;flex-wrap:wrap}
+.rewards{display:flex;gap:6px;flex-wrap:wrap}
+.rw{display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 10px 0 7px;border-radius:999px;background:var(--cream);font-family:var(--font-num);font-weight:600;font-size:15px}
+.rw .ic{width:16px;height:16px;color:var(--yellow-deep)}
+.rw-done{font-family:var(--font-zh);font-size:13px;color:var(--ink-2);font-weight:700}
+.qstate{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:700}
+.qstate .ic{width:16px;height:16px}
+.qstate.done{color:var(--teal-ink)}
+.qstate.locked{color:var(--ink-2)}
+.qcard.locked{background:var(--cream-2);box-shadow:none}
+.qcard.locked h3,.qcard.locked p{color:var(--ink-2)}
+.qcard-note{font-size:14px!important;padding:8px 10px;border-radius:10px;background:var(--teal-soft);color:var(--teal-ink)!important;font-weight:700}
+.qprogress{display:flex;align-items:center;gap:12px;padding:12px 16px;margin-bottom:16px}
+.qprogress b{font-size:15px;white-space:nowrap}
+.qprogress .bricks{flex:1}
+
+/* ---------- 商店 ---------- */
+.shop-head-right{display:flex;align-items:center;gap:10px}
+.sgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@container app (min-width:600px){.sgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@container app (min-width:1180px){.sgrid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}}
+.scard{display:flex;flex-direction:column;padding:0;border:0;text-align:left;cursor:pointer;background:#fff;border-radius:var(--r-lg);box-shadow:var(--shadow-card);border:1px solid rgba(32,51,79,.06);overflow:hidden;transition:transform .15s,box-shadow .15s}
+.scard:hover{transform:translateY(-2px);box-shadow:0 1px 0 rgba(32,51,79,.05),0 18px 30px -18px rgba(32,51,79,.45)}
+.scard-art{display:grid;place-items:center;height:118px;padding:12px;background:radial-gradient(circle at 50% 50%,#FBF7EF 0 40%,transparent 41%) 0 0/22px 22px,var(--cream-2)}
+.scard-art svg{max-height:100%;max-width:78%;height:100%}
+.scard-body{display:flex;flex-direction:column;gap:2px;padding:10px 12px 12px}
+.scard-body b{font-size:16px}
+.scard-cat{font-size:13px;color:var(--ink-2)}
+.scard-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:6px;flex-wrap:wrap}
+.price{display:inline-flex;align-items:center;gap:4px;font-family:var(--font-num);font-weight:600;font-size:18px}
+.price .coin-sm{width:20px;height:20px}
+.scard.dim .scard-art{filter:saturate(.35);opacity:.8}
+
+/* ---------- 儲蓄目標 ---------- */
+.ggrid{display:grid;gap:14px}
+@container app (min-width:900px){.ggrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.gcard{display:flex;gap:14px;padding:16px}
+.gcard-art{position:relative;flex:none;display:grid;place-items:center;width:92px;height:104px;border-radius:16px;background:var(--cream-2)}
+.gcard-art svg{width:80%;height:86%}
+.gcard-art.locked svg{filter:grayscale(1) contrast(.8);opacity:.45}
+.gcard-art .lockdot{position:absolute;right:-6px;top:-6px;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--navy);color:var(--yellow);box-shadow:0 3px 0 var(--navy-deep)}
+.gcard-art .lockdot .ic{width:16px;height:16px}
+.gcard-art .ic.big{width:40px;height:40px;color:var(--teal-deep)}
+.gcard-body{flex:1;min-width:0}
+.gcard-title{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.gcard-title h3{font-size:18px;font-weight:800}
+.gnums{display:flex;align-items:baseline;gap:4px;margin-top:4px;font-size:14px;color:var(--ink-2)}
+.gnums .num.big{font-size:26px;color:var(--navy)}
+.gnums .gpct{margin-left:auto;font-family:var(--font-num);font-weight:600;font-size:16px;color:var(--teal-ink)}
+.gleft{font-size:14px;color:var(--ink-2);margin-top:8px}
+.gleft b{color:var(--navy);font-family:var(--font-num)}
+.gactions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.gactions .btn{flex:1}
+.ghint{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;margin-bottom:16px;border-radius:14px;background:var(--teal-soft);color:var(--teal-ink);font-size:15px;font-weight:500}
+.ghint .ic{margin-top:2px}
+.gmini{display:flex;gap:12px;align-items:center;padding:14px}
+.gmini-art{flex:none;display:grid;place-items:center;width:60px;height:66px;border-radius:12px;background:var(--cream-2)}
+.gmini-art svg{width:84%;height:88%}
+.gmini-art.locked svg{filter:grayscale(1);opacity:.5}
+.gmini-body{flex:1;min-width:0}
+.gmini-body b{font-size:16px}
+.gmini-body small{display:block;font-size:13px;color:var(--ink-2);margin-top:4px}
+
+/* ---------- 個人 ---------- */
+.me-grid{display:grid;gap:14px}
+@container app (min-width:900px){.me-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.me-grid .span-all{grid-column:1/-1}}
+.me-sec{padding:16px}
+.me-sec h2{font-size:17px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.profile{display:flex;gap:16px;align-items:center}
+.profile .av{width:84px;height:84px}
+.profile h2{margin:0 0 2px;font-size:22px}
+.profile .meta{font-size:14px;color:var(--ink-2)}
+.profile .xpbar{margin-top:8px;max-width:260px}
+.stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.stat{padding:10px 12px;border-radius:14px;background:var(--cream)}
+.stat small{display:block;font-size:13px;color:var(--ink-2)}
+.stat b{font-family:var(--font-num);font-size:22px;font-weight:600}
+.stat span{font-size:13px;color:var(--ink-2);margin-left:3px}
+.topic-chips{display:flex;flex-wrap:wrap;gap:8px}
+.topic-chips .cat.off{background:var(--cream-2);color:#8A93A1}
+.inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.inv{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:14px;background:var(--cream);text-align:center;font-size:14px;font-weight:700}
+.inv svg{height:48px;width:60px}
+.inv small{font-size:12px;color:var(--ink-2);font-weight:500}
+.inv .btn{min-height:34px;padding:0 10px;font-size:13px;border-radius:10px;margin-top:2px}
+.log-list li{display:flex;gap:12px;padding:10px 0;border-bottom:1px dashed var(--line)}
+.log-list li:last-child{border-bottom:0}
+.log-list .cat{margin-top:2px}
+.log-list b{display:block;font-size:15px}
+.log-list small{display:block;font-size:13px;color:var(--ink-2)}
+
+/* ---------- 右側欄 ---------- */
+.rail-sec{margin-bottom:22px}
+.rail-sec .sec-title{font-size:16px}
+.rq-list{display:flex;flex-direction:column;gap:8px}
+.rq{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;border-radius:14px;background:#fff;text-align:left;cursor:pointer;box-shadow:var(--shadow-card)}
+.rq:hover:not([disabled]){box-shadow:inset 0 0 0 1.5px var(--navy)}
+.rq[disabled]{background:var(--cream-2);box-shadow:none;cursor:default}
+.rq .cat{width:34px;height:34px;padding:0;justify-content:center;border-radius:10px}
+.rq .cat .ic{width:18px;height:18px}
+.rq span.t{flex:1;min-width:0}
+.rq b{display:block;font-size:15px}
+.rq small{display:block;font-size:13px;color:var(--ink-2)}
+.rq .chev{color:var(--slate)}
+.act-list li{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.act-list li:last-child{border-bottom:0}
+.act-list .t{flex:1;min-width:0}
+.act-list .t b{display:block;font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.act-list .t small{color:var(--ink-2);font-size:12px}
+.amt{font-family:var(--font-num);font-weight:600;font-size:16px;white-space:nowrap}
+.amt.plus{color:var(--teal-ink)}
+.amt.minus{color:var(--navy)}
+.tx-ic{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;flex:none;background:var(--cream-2);color:var(--navy)}
+.tx-ic .ic{width:18px;height:18px}
+.tx-ic.in{background:var(--teal-soft);color:var(--teal-ink)}
+.tx-ic.save{background:var(--yellow-soft);color:#6B4E00}
+
+/* ---------- Sheet / Dialog ---------- */
+.scrim{position:absolute;inset:0;z-index:100;background:rgba(22,36,58,.48);animation:fade .2s ease}
+@keyframes fade{from{opacity:0}}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:101;display:flex;flex-direction:column;max-height:92%;background:var(--cream);border-radius:26px 26px 0 0;box-shadow:0 -12px 40px -12px rgba(22,36,58,.5);animation:sheetUp .3s cubic-bezier(.2,.8,.2,1);outline:none}
+@keyframes sheetUp{from{transform:translateY(40px);opacity:0}}
+.sheet-quest{height:calc(100% - 16px);max-height:none}
+.grabber{width:42px;height:5px;margin:8px auto 0;border-radius:3px;background:var(--cream-3);flex:none}
+.sheet-head{display:flex;align-items:center;gap:10px;padding:12px 16px 10px;flex:none}
+.sheet-head h2{flex:1;font-size:20px;font-weight:800;min-width:0}
+.sheet-body{flex:1;overflow-y:auto;padding:4px 16px 22px;overscroll-behavior:contain}
+.sheet-foot{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 16px calc(14px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line)}
+.sheet-foot .btn{flex:1}
+.sheet-foot .note{flex-basis:100%;font-size:13px;color:var(--ink-2);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.sheet-foot .note .ic{width:16px;height:16px;color:var(--yellow-deep)}
+@container app (min-width:768px){
+  .sheet{left:50%;top:50%;right:auto;bottom:auto;width:min(540px,calc(100% - 48px));max-height:min(88%,820px);transform:translate(-50%,-50%);border-radius:26px;animation:pop .24s cubic-bezier(.2,.8,.2,1)}
+  .sheet-quest{width:min(700px,calc(100% - 48px));height:min(90%,880px)}
+  .sheet-foot{border-radius:0 0 26px 26px;padding:14px 20px 16px}
+  .sheet-head{padding:18px 20px 10px}
+  .sheet-body{padding:4px 20px 24px}
+  .grabber{display:none}
+}
+@keyframes pop{from{transform:translate(-50%,-47%) scale(.97);opacity:0}}
+
+.art-stage{display:grid;place-items:center;height:170px;margin-bottom:14px;border-radius:20px;background:radial-gradient(circle at 50% 50%,#FBF7EF 0 40%,transparent 41%) 0 0/24px 24px,var(--cream-2)}
+.art-stage svg{height:78%;max-width:70%}
+.kv{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 12px}
+.desc{font-size:16px}
+.pricebox{display:grid;gap:8px;padding:14px;margin-top:14px;border-radius:16px;background:#fff;box-shadow:inset 0 0 0 1.5px var(--line)}
+.pricebox .row{display:flex;justify-content:space-between;align-items:center;font-size:15px}
+.pricebox .row .num{font-size:18px;display:inline-flex;align-items:center;gap:5px}
+.pricebox .arrow{color:var(--slate);margin:0 4px;font-family:var(--font-zh)}
+.think{display:flex;gap:10px;padding:12px 14px;margin-top:12px;border-radius:14px;background:var(--yellow-soft);font-size:15px}
+.think .ic{color:#8A6500;margin-top:2px}
+.warn{display:flex;gap:10px;padding:12px 14px;margin-top:12px;border-radius:14px;background:var(--coral-soft);color:var(--coral-ink);font-size:15px;font-weight:700}
+.warn .ic{margin-top:2px}
+.okbox{display:flex;gap:10px;padding:12px 14px;margin-top:12px;border-radius:14px;background:var(--teal-soft);color:var(--teal-ink);font-size:15px;font-weight:700}
+
+/* 數量調整 */
+.amount{display:flex;align-items:center;justify-content:center;gap:18px;margin:6px 0 14px}
+.amount .num{font-size:44px;min-width:110px;text-align:center;line-height:1}
+.amount .unit{display:block;font-size:13px;color:var(--ink-2);text-align:center;font-family:var(--font-zh);font-weight:500;margin-top:4px}
+.step{display:inline-grid;place-items:center;width:52px;height:52px;border:0;border-radius:16px;background:#fff;cursor:pointer;box-shadow:inset 0 0 0 2px var(--navy),0 4px 0 var(--navy)}
+.step:not([disabled]):active{transform:translateY(3px);box-shadow:inset 0 0 0 2px var(--navy),0 1px 0 var(--navy)}
+.step[disabled]{box-shadow:inset 0 0 0 2px var(--cream-3),0 4px 0 var(--cream-3);color:#A3ACB9;cursor:not-allowed}
+.quick{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:6px}
+.quick .chip{height:36px}
+.field{display:block;margin:14px 0}
+.field span{display:block;font-size:14px;font-weight:700;margin-bottom:6px}
+.field input{width:100%;height:48px;padding:0 14px;border:0;border-radius:14px;background:#fff;box-shadow:inset 0 0 0 2px var(--line);font:inherit;font-size:16px;color:var(--navy)}
+.field input:focus{outline:none;box-shadow:inset 0 0 0 2px var(--navy)}
+.pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.pick{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 8px;border:0;border-radius:16px;background:#fff;cursor:pointer;box-shadow:inset 0 0 0 2px var(--line);font-weight:700;font-size:14px}
+.pick svg{height:56px;width:70px}
+.pick small{font-family:var(--font-num);font-weight:600;color:var(--ink-2);font-size:14px}
+.pick .ic.big{width:40px;height:40px;margin:8px 0;color:var(--teal-deep)}
+.pick[aria-checked="true"]{background:var(--yellow-soft);box-shadow:inset 0 0 0 2.5px var(--navy)}
+
+/* 任務流程 */
+.steps{display:flex;gap:6px;padding:0 16px 8px;flex:none}
+.steps li{flex:1;height:30px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:var(--cream-2);color:var(--ink-2);font-size:13px;font-weight:700}
+.steps li.on{background:var(--navy);color:#fff}
+.steps li.ok{background:var(--teal-soft);color:var(--teal-ink)}
+@container app (min-width:768px){.steps{padding:0 20px 10px}}
+.story{display:flex;gap:14px;align-items:center;padding:14px;border-radius:18px;background:#fff;box-shadow:inset 0 0 0 1.5px var(--line)}
+.story-art{flex:none;display:flex;align-items:flex-end;justify-content:center;gap:2px;width:112px;height:100px;padding:6px;border-radius:14px;background:radial-gradient(circle at 50% 50%,#FBF7EF 0 40%,transparent 41%) 0 0/18px 18px,var(--cream-2)}
+.story-art svg{height:90%;max-width:62%}
+.story-art svg.s{height:42%}
+.story-text p{font-size:16px}
+.story-text p+p{margin-top:6px}
+.story-text b{font-family:var(--font-num);font-weight:600;background:var(--yellow-soft);padding:0 4px;border-radius:5px}
+@container app (max-width:520px){.story{flex-direction:column;align-items:stretch}.story-art{width:100%;height:110px}}
+.res-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin-top:12px}
+.res{padding:10px 12px;border-radius:14px;background:var(--cream-2)}
+.res small{display:block;font-size:13px;color:var(--ink-2)}
+.res b{font-family:var(--font-num);font-weight:600;font-size:22px;display:inline-flex;align-items:center;gap:4px}
+.sim-note{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:13px;color:var(--ink-2)}
+.sim-note .ic{width:16px;height:16px}
+.q-ask{font-size:18px;font-weight:800;margin:18px 0 10px}
+.opts{display:grid;gap:10px}
+.opt{display:flex;align-items:center;gap:12px;width:100%;padding:14px;border:0;border-radius:16px;background:#fff;text-align:left;cursor:pointer;box-shadow:inset 0 0 0 2px var(--line),0 3px 0 rgba(32,51,79,.06);transition:box-shadow .15s,background .15s}
+.opt:hover{box-shadow:inset 0 0 0 2px var(--slate),0 3px 0 rgba(32,51,79,.08)}
+.opt-key{display:grid;place-items:center;width:38px;height:38px;flex:none;border-radius:11px;background:var(--cream-2);font-family:var(--font-num);font-weight:700;font-size:18px}
+.opt-text{flex:1}
+.opt-text b{display:block;font-size:16px}
+.opt-text small{display:block;font-size:14px;color:var(--ink-2)}
+.opt-check{display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:50%;box-shadow:inset 0 0 0 2px var(--cream-3);color:transparent}
+.opt-check .ic{width:16px;height:16px}
+.opt[aria-checked="true"]{background:var(--yellow-soft);box-shadow:inset 0 0 0 2.5px var(--navy),0 3px 0 var(--navy)}
+.opt[aria-checked="true"] .opt-key{background:var(--navy);color:var(--yellow)}
+.opt[aria-checked="true"] .opt-check{background:var(--navy);color:var(--yellow);box-shadow:none}
+.jars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.jar{display:flex;flex-direction:column;align-items:center;text-align:center;padding:12px 8px;border-radius:16px;background:#fff;box-shadow:inset 0 0 0 1.5px var(--line)}
+.jar svg{width:56px;height:66px}
+.jar b{font-size:16px;margin-top:4px}
+.jar small{font-size:12px;color:var(--ink-2);line-height:1.4;min-height:34px}
+.jar .stepper{display:flex;align-items:center;gap:6px;margin-top:8px}
+.jar .stepper .num{font-size:22px;min-width:34px}
+.jar .step{width:38px;height:38px;border-radius:12px}
+.jar .step .ic{width:18px;height:18px}
+@container app (max-width:520px){
+  .jars{grid-template-columns:1fr;gap:8px}
+  .jar{flex-direction:row;align-items:center;gap:12px;text-align:left;padding:10px 12px}
+  .jar svg{width:40px;height:48px;flex:none}
+  .jar-info{flex:1;min-width:0}
+  .jar small{min-height:0}
+  .jar .stepper{margin-top:0}
+}
+.alloc-left{text-align:center;margin-top:12px;font-weight:700}
+.alloc-left b{font-family:var(--font-num);font-size:20px;color:var(--coral-ink)}
+.alloc-left.done{color:var(--teal-ink)}
+.recap{padding:12px 14px;border-radius:16px;background:var(--navy);color:#fff}
+.recap small{display:block;font-size:13px;color:#B9C5D6}
+.recap b{font-size:17px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:12px}
+.stats .stat{background:#fff;box-shadow:inset 0 0 0 1.5px var(--line)}
+.viz{margin-top:12px;padding:12px 14px;border-radius:14px;background:#fff;box-shadow:inset 0 0 0 1.5px var(--line);font-size:14px}
+.viz-head{display:flex;justify-content:space-between;font-weight:700}
+.stack{display:flex;height:22px;border-radius:8px;overflow:hidden;margin-top:8px;background:var(--cream-3)}
+.stack i{display:block;height:100%}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:13px;color:var(--ink-2)}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;background:var(--c)}
+.procon{display:grid;gap:10px;margin-top:12px}
+@container app (min-width:600px){.procon{grid-template-columns:1fr 1fr}}
+.pc{padding:12px 14px;border-radius:16px}
+.pc h4{display:flex;align-items:center;gap:6px;font-size:15px;margin-bottom:6px}
+.pc li{font-size:15px;padding-left:14px;position:relative}
+.pc li+li{margin-top:4px}
+.pc li::before{content:"";position:absolute;left:0;top:.62em;width:6px;height:6px;border-radius:2px;background:currentColor;opacity:.6}
+.pc.pro{background:var(--teal-soft);color:#1F5E52}
+.pc.con{background:var(--yellow-soft);color:#5C4300}
+.no-answer{margin-top:12px;font-size:14px;color:var(--ink-2)}
+.no-answer b{color:var(--navy);margin-right:6px}
+.reflect{margin-top:14px;padding:14px;border-radius:16px;background:#fff;box-shadow:inset 0 0 0 2px var(--navy),0 4px 0 var(--navy)}
+.reflect small{display:inline-block;padding:2px 8px;border-radius:6px;background:var(--navy);color:var(--yellow);font-size:12px;font-weight:700}
+.reflect p{font-size:17px;font-weight:700;margin:8px 0 4px}
+.reflect span{font-size:13px;color:var(--ink-2)}
+.lvl-hero{display:grid;place-items:center;gap:6px;padding:18px 0 8px;text-align:center}
+.lvl-hero .big{display:grid;place-items:center;width:96px;height:84px;border-radius:18px;background:var(--yellow);box-shadow:0 6px 0 var(--yellow-deep);font-family:var(--font-num);font-weight:700;font-size:34px;position:relative}
+.lvl-hero .big::before,.lvl-hero .big::after{content:"";position:absolute;top:-9px;width:22px;height:10px;border-radius:5px 5px 0 0;background:var(--yellow)}
+.lvl-hero .big::before{left:18px}.lvl-hero .big::after{right:18px}
+.lvl-hero h3{font-size:20px;margin-top:10px}
+.unlock-list li{display:flex;align-items:center;gap:10px;padding:10px 12px;margin-top:8px;border-radius:14px;background:#fff;box-shadow:inset 0 0 0 1.5px var(--line);font-weight:700}
+.unlock-list svg{width:36px;height:36px}
+.ledger-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 14px}
+.ledger-sum .stat b{font-size:19px}
+.ledger li{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px dashed var(--line)}
+.ledger li:last-child{border-bottom:0}
+.ledger .t{flex:1;min-width:0}
+.ledger .t b{display:block;font-size:15px}
+.ledger .t small{display:block;font-size:12px;color:var(--ink-2)}
+.ledger .r{text-align:right}
+.ledger .r small{display:block;font-size:12px;color:var(--ink-2);font-family:var(--font-num)}
+.bal-hero{display:flex;align-items:center;gap:10px;padding:14px;border-radius:18px;background:#fff;box-shadow:inset 0 0 0 1.5px var(--line)}
+.bal-hero svg{width:44px;height:44px}
+.bal-hero small{display:block;font-size:13px;color:var(--ink-2)}
+.bal-hero b{font-family:var(--font-num);font-weight:600;font-size:32px;line-height:1.1}
+
+/* Toast */
+.toast-root{position:absolute;left:0;right:0;bottom:92px;z-index:200;display:flex;justify-content:center;padding:0 16px;pointer-events:none}
+.device.is-building .toast-root{bottom:auto;top:72px}
+.toast{pointer-events:auto;display:flex;align-items:center;gap:12px;max-width:460px;padding:10px 10px 10px 16px;border-radius:16px;background:var(--navy);color:#fff;font-size:15px;font-weight:500;box-shadow:0 14px 30px -12px rgba(22,36,58,.6);animation:toastIn .28s cubic-bezier(.2,.8,.2,1)}
+.toast .btn{min-height:36px;padding:0 12px;font-size:14px;border-radius:10px}
+.toast.no-act{padding:12px 18px}
+@keyframes toastIn{from{transform:translateY(12px);opacity:0}}
+@container app (min-width:768px){.toast-root{bottom:28px}.device.is-building .toast-root{bottom:28px;top:auto}}
+
+/* 積木彩帶 */
+.fx{position:absolute;inset:0;z-index:300;pointer-events:none;overflow:hidden}
+.cf{position:absolute;top:-24px;left:var(--x);width:14px;height:9px;border-radius:2px;background:var(--c);animation:fall var(--d) cubic-bezier(.25,.6,.45,1) var(--dl) forwards}
+.cf::before{content:"";position:absolute;top:-3px;left:4px;width:6px;height:4px;border-radius:2px 2px 0 0;background:inherit}
+@keyframes fall{to{transform:translate(var(--dx),1100px) rotate(var(--r))}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+  .fx{display:none}
+}
+</style>
+</head>
+<body data-preview="desktop">
+<div class="stage">
+  <div class="preview-bar" role="toolbar" aria-label="原型預覽工具">
+    <span class="pv-title"><b>Wealth Blocks</b>Kids MVP 互動原型 · v0.1</span>
+    <div class="pv-seg" role="group" aria-label="裝置寬度">
+      <button type="button" data-pv="phone">手機 390</button>
+      <button type="button" data-pv="tablet">平板 820</button>
+      <button type="button" data-pv="desktop">桌面</button>
+    </div>
+    <span class="pv-note">資料只存在這個瀏覽器</span>
+    <button type="button" class="pv-reset" data-action="reset-ask">重設資料</button>
+  </div>
+  <div class="device" id="device">
+    <div class="app" id="app">
+      <header class="topbar" id="topbar"></header>
+      <nav class="sidenav" id="sidenav" aria-label="主要功能"></nav>
+      <main class="main" id="main" tabindex="-1"></main>
+      <aside class="rail" id="rail" aria-label="今日摘要"></aside>
+      <nav class="tabbar" id="tabbar" aria-label="主要功能"></nav>
+    </div>
+    <div id="overlay"></div>
+    <div class="toast-root" id="toast" role="status" aria-live="polite"></div>
+    <div class="fx" id="fx" aria-hidden="true"></div>
+    <div class="sr-only" id="live" aria-live="polite"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* =========================================================
+   常數與內容資料
+   ========================================================= */
+const COLS = 9, ROWS = 9;
+const MASK = [
+  '...LLL...',
+  '.LLLLLL..',
+  '.LLLLLLL.',
+  'LLLLLLLLL',
+  'LLLLLLLLL',
+  'LLLLLLLL.',
+  '.LLLLLLL.',
+  '..LLLLL..',
+  '...LL....',
+];
+const isLand = (x, y) => y >= 0 && y < ROWS && x >= 0 && x < COLS && MASK[y][x] === 'L';
+
+const C = {
+  navy:'#20334F', navyD:'#16243A', yel:'#FFD34E', yelD:'#E2B22F', teal:'#56B7A5', tealD:'#3F9886', tealL:'#86CFC0',
+  coral:'#C95D43', coralD:'#A8452E', coralL:'#EC9A7F', creamD:'#E4D9C4', white:'#FFFFFF',
+  wood:'#B9835A', woodD:'#93623E', sh:'rgba(32,51,79,.18)',
+};
+const stud = (x, y, fill, w = 8) => `<rect x="${x}" y="${y}" width="${w}" height="5" rx="2" fill="${fill}"/>`;
+
+/* 每個素材回傳 [viewBox 寬, viewBox 高, 內容]；1 格 = 40 單位，底部對齊佔地格 */
+const ART = {
+  tent: () => [40, 56, `
+    <ellipse cx="20" cy="51.5" rx="16" ry="3.5" fill="${C.sh}"/>
+    <path d="M3 50 L20 12 L37 50 Z" fill="${C.yel}"/>
+    <path d="M20 12 L37 50 L20 50 Z" fill="${C.yelD}"/>
+    <path d="M13 50 L20 30 L27 50 Z" fill="${C.navy}"/>
+    <rect x="19" y="3" width="2" height="11" fill="${C.navy}"/>
+    <path d="M21 3.5 L30 6.8 L21 10 Z" fill="${C.coral}"/>`],
+  rock: () => [40, 40, `
+    <ellipse cx="20" cy="35" rx="15" ry="3" fill="${C.sh}"/>
+    <path d="M6 34 L9 22 L18 14 L28 16 L35 25 L34 34 Z" fill="#B3BCC7"/>
+    <path d="M18 14 L28 16 L35 25 L34 34 L22 34 L24 23 Z" fill="#8E99A7"/>
+    <path d="M7 34l2-6 1.5 6 2-5 1.5 5" fill="${C.teal}"/>`],
+  tree: () => [40, 68, `
+    <ellipse cx="20" cy="63.5" rx="13" ry="3.5" fill="${C.sh}"/>
+    <rect x="17" y="44" width="6" height="20" rx="2" fill="${C.wood}"/>
+    <rect x="20" y="44" width="3" height="20" fill="${C.woodD}"/>
+    <rect x="5" y="30" width="30" height="18" rx="5" fill="${C.teal}"/>
+    <rect x="5" y="42" width="30" height="6" rx="3" fill="${C.tealD}"/>
+    <rect x="9" y="17" width="22" height="16" rx="5" fill="${C.teal}"/>
+    <rect x="9" y="28" width="22" height="5" rx="2.5" fill="${C.tealD}"/>
+    <rect x="13" y="6" width="14" height="14" rx="5" fill="${C.tealL}"/>
+    <rect x="13" y="16" width="14" height="4" rx="2" fill="${C.teal}"/>
+    ${stud(16, 2, C.tealL)}`],
+  flower: () => [40, 46, `
+    <ellipse cx="20" cy="42" rx="16" ry="3" fill="${C.sh}"/>
+    <path d="M12 30V18M20 30V13M28 30V19" stroke="${C.tealD}" stroke-width="2.2" stroke-linecap="round"/>
+    <ellipse cx="16" cy="24" rx="3.6" ry="2" fill="${C.teal}" transform="rotate(-30 16 24)"/>
+    <ellipse cx="24.5" cy="22.5" rx="3.6" ry="2" fill="${C.teal}" transform="rotate(30 24.5 22.5)"/>
+    <circle cx="12" cy="16" r="5" fill="${C.coralL}"/><circle cx="12" cy="16" r="2" fill="${C.yel}"/>
+    <circle cx="20" cy="11" r="5.5" fill="${C.white}"/><circle cx="20" cy="11" r="2.2" fill="${C.yel}"/>
+    <circle cx="28" cy="17" r="5" fill="${C.yel}"/><circle cx="28" cy="17" r="2" fill="${C.coral}"/>
+    <rect x="4" y="28" width="32" height="12" rx="3" fill="${C.coral}"/>
+    <rect x="7" y="28.5" width="26" height="3" rx="1.5" fill="${C.woodD}"/>
+    <rect x="4" y="35" width="32" height="5" rx="2.5" fill="${C.coralD}"/>`],
+  lamp: () => [40, 78, `
+    <ellipse cx="20" cy="73" rx="10" ry="3" fill="${C.sh}"/>
+    <circle cx="20" cy="17" r="15" fill="${C.yel}" opacity=".25"/>
+    <rect x="13" y="64" width="14" height="9" rx="2.5" fill="${C.navy}"/>
+    <rect x="18.5" y="22" width="3" height="44" fill="${C.navy}"/>
+    <rect x="11" y="10" width="18" height="14" rx="4" fill="${C.navy}"/>
+    <rect x="14" y="13" width="12" height="8" rx="2" fill="${C.yel}"/>
+    ${stud(16, 6, C.navy)}`],
+  road: () => [40, 40, `
+    <rect x="1" y="1" width="38" height="38" rx="5" fill="#D9CAAA"/>
+    <rect x="1" y="1" width="38" height="34" rx="5" fill="#EFE5D0"/>
+    <circle cx="12" cy="12" r="1.6" fill="#DDD0B4"/><circle cx="27" cy="22" r="1.4" fill="#DDD0B4"/><circle cx="17" cy="27" r="1.1" fill="#DDD0B4"/>`],
+  pond: () => [80, 80, `
+    <rect x="3" y="6" width="74" height="70" rx="30" fill="#4FA3BA"/>
+    <rect x="3" y="3" width="74" height="68" rx="30" fill="#7FCBDC"/>
+    <rect x="11" y="10" width="58" height="52" rx="24" fill="#9FDBE7"/>
+    <path d="M20 26q6-3.5 12 0M42 48q6-3.5 12 0" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".85"/>
+    <ellipse cx="54" cy="27" rx="8" ry="5" fill="${C.teal}"/>
+    <path d="M54 27 L62.5 25 L62.5 29.5 Z" fill="#9FDBE7"/>
+    <circle cx="51" cy="25.5" r="2.4" fill="${C.coralL}"/>
+    <path d="M13 60v-9M16.5 61v-12M20 60v-8" stroke="${C.tealD}" stroke-width="2" stroke-linecap="round"/>
+    <rect x="15.3" y="45" width="2.4" height="6" rx="1.2" fill="${C.woodD}"/>`],
+  house: () => [80, 118, `
+    <ellipse cx="40" cy="112" rx="36" ry="5" fill="${C.sh}"/>
+    <rect x="5" y="100" width="70" height="10" rx="3" fill="#C9BB9C"/>
+    <rect x="5" y="100" width="70" height="6" rx="3" fill="#DCD0B6"/>
+    <rect x="11" y="58" width="58" height="44" fill="#FFFFFF"/>
+    <rect x="59" y="58" width="10" height="44" fill="#EDE6D7"/>
+    <path d="M11 69h58M11 80h58M11 91h58M25 58v11M45 58v11M35 69v11M55 69v11M25 80v11M45 80v11M35 91v11M55 91v11" stroke="#E6DED0" stroke-width="1.2"/>
+    <path d="M34 102V85a6 6 0 0 1 12 0v17Z" fill="${C.navy}"/>
+    <circle cx="43" cy="94" r="1.4" fill="${C.yel}"/>
+    <rect x="16" y="71" width="13" height="13" rx="2" fill="${C.yel}" stroke="${C.navy}" stroke-width="2.4"/>
+    <path d="M22.5 71v13M16 77.5h13" stroke="${C.navy}" stroke-width="1.6"/>
+    <rect x="51" y="71" width="13" height="13" rx="2" fill="${C.yel}" stroke="${C.navy}" stroke-width="2.4"/>
+    <path d="M57.5 71v13M51 77.5h13" stroke="${C.navy}" stroke-width="1.6"/>
+    <rect x="57" y="14" width="9" height="22" fill="${C.navy}"/>
+    ${stud(57.5, 10, C.navy)}
+    <rect x="4" y="47" width="72" height="13" rx="3" fill="${C.coral}"/>
+    <rect x="4" y="55" width="72" height="5" rx="2.5" fill="${C.coralD}"/>
+    ${stud(5, 43, C.coral)}${stud(67, 43, C.coral)}
+    <rect x="14" y="35" width="52" height="13" rx="3" fill="${C.coral}"/>
+    <rect x="14" y="43" width="52" height="5" rx="2.5" fill="${C.coralD}"/>
+    ${stud(15, 31, C.coral)}
+    <rect x="24" y="23" width="32" height="13" rx="3" fill="${C.coral}"/>
+    <rect x="24" y="31" width="32" height="5" rx="2.5" fill="${C.coralD}"/>
+    ${stud(27, 19, C.coral)}${stud(36, 19, C.coral)}${stud(45, 19, C.coral)}`],
+  shop: () => [80, 108, `
+    <ellipse cx="40" cy="102" rx="36" ry="5" fill="${C.sh}"/>
+    <rect x="5" y="90" width="70" height="10" rx="3" fill="#C9BB9C"/>
+    <rect x="5" y="90" width="70" height="6" rx="3" fill="#DCD0B6"/>
+    <rect x="9" y="46" width="62" height="46" fill="${C.teal}"/>
+    <rect x="61" y="46" width="10" height="46" fill="${C.tealD}"/>
+    <path d="M9 57h52M9 68h52M9 79h52" stroke="#fff" stroke-opacity=".2" stroke-width="1.2"/>
+    <rect x="15" y="62" width="25" height="20" rx="2" fill="#E8F6F2" stroke="#fff" stroke-width="2.5"/>
+    <path d="M15 75h25" stroke="${C.tealD}" stroke-width="1.5"/>
+    <circle cx="21" cy="71" r="3" fill="${C.yel}"/><circle cx="28" cy="71" r="3" fill="${C.coralL}"/><rect x="32" y="67.5" width="5" height="7" rx="1" fill="${C.navy}"/>
+    <rect x="46" y="62" width="16" height="30" rx="2" fill="${C.navy}"/>
+    <rect x="49" y="66" width="10" height="9" rx="1.5" fill="#E8F6F2"/>
+    <circle cx="59" cy="80" r="1.3" fill="${C.yel}"/>
+    <rect x="5" y="38" width="70" height="12" fill="#fff"/>
+    ${[5, 19, 33, 47, 61].map(x => `<rect x="${x}" y="38" width="7" height="12" fill="${C.yel}"/>`).join('')}
+    ${Array.from({length: 10}, (_, i) => `<circle cx="${8.5 + i * 7}" cy="50" r="3.5" fill="${i % 2 ? '#fff' : C.yel}"/>`).join('')}
+    <rect x="4" y="36" width="72" height="4" rx="2" fill="${C.yelD}"/>
+    <rect x="38" y="33" width="4" height="4" fill="${C.navy}"/>
+    ${stud(22, 12, C.navy)}${stud(36, 12, C.navy)}${stud(50, 12, C.navy)}
+    <rect x="18" y="16" width="44" height="18" rx="4" fill="${C.navy}"/>
+    <circle cx="28" cy="25" r="5" fill="${C.yel}"/><rect x="25.5" y="24" width="5" height="3" rx=".6" fill="${C.navy}"/>
+    <text x="36" y="29.5" font-size="11" font-weight="800" fill="#fff" font-family="Chiron GoRound TC, Noto Sans TC, sans-serif">商店</text>`],
+  library: () => [80, 118, `
+    <ellipse cx="40" cy="112" rx="36" ry="5" fill="${C.sh}"/>
+    <rect x="5" y="101" width="70" height="9" rx="3" fill="#C9BB9C"/>
+    <rect x="5" y="101" width="70" height="5" rx="2.5" fill="#DCD0B6"/>
+    <rect x="10" y="94" width="60" height="8" rx="2" fill="#EFE7D8"/>
+    <rect x="13" y="56" width="54" height="39" fill="#D5DEE9"/>
+    <path d="M34 95V78a6 6 0 0 1 12 0v17Z" fill="${C.navy}"/>
+    ${[14, 23, 50, 59].map(x => `<rect x="${x}" y="56" width="7" height="39" fill="#fff"/><rect x="${x + 4.5}" y="56" width="2.5" height="39" fill="#E3E8EF"/>`).join('')}
+    <rect x="8" y="46" width="64" height="11" rx="2" fill="${C.navy}"/>
+    <path d="M6 47 L40 20 L74 47 Z" fill="${C.navy}"/>
+    <path d="M17 44 L40 26 L63 44 Z" fill="${C.yel}"/>
+    <path d="M33 41v-6.5q3.5-2 7 0q3.5-2 7 0V41q-3.5-2-7 0q-3.5-2-7 0Z" fill="#fff"/>
+    <path d="M40 34.5V41" stroke="${C.navy}" stroke-width="1.2"/>
+    ${stud(36, 15, C.navy)}`],
+  hatExplorer: () => [40, 32, `
+    <ellipse cx="20" cy="26" rx="18" ry="5" fill="${C.woodD}"/>
+    <ellipse cx="20" cy="24.5" rx="18" ry="4.5" fill="${C.wood}"/>
+    <path d="M8 24C8 8 32 8 32 24Z" fill="#D9A877"/>
+    <rect x="8.4" y="18.5" width="23.2" height="4" fill="${C.navy}"/>`],
+  hatCap: () => [40, 32, `
+    <path d="M26 22 L38 23.5 Q38 27.5 30 27Z" fill="${C.navyD}"/>
+    <path d="M6 24C6 8 30 8 30 24Z" fill="${C.navy}"/>
+    <rect x="6" y="22" width="24" height="3.5" rx="1.5" fill="${C.navyD}"/>
+    <path d="M18 11.5l1.2 2.5 2.7.4-2 1.9.5 2.7-2.4-1.3-2.4 1.3.5-2.7-2-1.9 2.7-.4Z" fill="${C.yel}"/>
+    <circle cx="18" cy="9" r="1.6" fill="${C.navyD}"/>`],
+  /* 故事插圖用 */
+  car: () => [48, 32, `
+    <ellipse cx="24" cy="29.5" rx="20" ry="2.5" fill="${C.sh}"/>
+    <path d="M13 13l4-7h14l5 7Z" fill="${C.yel}"/>
+    <path d="M19 12l2.5-4h4V12Z M28 12V8h2.5l2.5 4Z" fill="#E8F6F2"/>
+    <rect x="4" y="13" width="40" height="11" rx="4" fill="${C.coral}"/>
+    <rect x="4" y="20" width="40" height="4" rx="2" fill="${C.coralD}"/>
+    <circle cx="13" cy="25" r="4.5" fill="${C.navy}"/><circle cx="13" cy="25" r="1.6" fill="${C.creamD}"/>
+    <circle cx="35" cy="25" r="4.5" fill="${C.navy}"/><circle cx="35" cy="25" r="1.6" fill="${C.creamD}"/>`],
+  cloud: () => [48, 40, `
+    <path d="M12 26a7 7 0 0 1 1-13.9A9 9 0 0 1 30 9a7.5 7.5 0 0 1 6 15Z" fill="#8C9AB0"/>
+    <path d="M14 30l-2 6M22 30l-2 6M30 30l-2 6" stroke="#5FA9C9" stroke-width="2.4" stroke-linecap="round"/>`],
+};
+const artSVG = (type, cls = '') => {
+  const [vw, vh, body] = ART[type]();
+  return `<svg class="${cls}" viewBox="0 0 ${vw} ${vh}" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">${body}</svg>`;
+};
+const jarSVG = (pct, color) => {
+  const h = Math.round(34 * pct);
+  return `<svg viewBox="0 0 44 52" aria-hidden="true">
+    <rect x="12" y="2" width="20" height="7" rx="2" fill="${C.yel}"/>
+    <rect x="9" y="8" width="26" height="4" rx="2" fill="${C.yelD}"/>
+    <path d="M8 14Q8 11 11 11H33Q36 11 36 14V44Q36 50 30 50H14Q8 50 8 44Z" fill="#F1F8F9" stroke="${C.navy}" stroke-width="2"/>
+    ${h > 0 ? `<rect x="10" y="${48 - h}" width="24" height="${h}" rx="4" fill="${color}"/>` : ''}
+    <path d="M13 17v18" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".9"/></svg>`;
+};
+
+const COIN = `<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="8.6" fill="${C.yel}" stroke="${C.yelD}" stroke-width="1.8"/><rect x="5.3" y="9" width="9.4" height="5" rx="1.1" fill="${C.navy}"/><rect x="6.4" y="6.9" width="2.6" height="2.5" rx=".6" fill="${C.navy}"/><rect x="11" y="6.9" width="2.6" height="2.5" rx=".6" fill="${C.navy}"/></svg>`;
+const coinSm = () => COIN.replace('<svg ', '<svg class="coin-sm" ');
+const LOGO = `<svg viewBox="0 0 36 36" aria-hidden="true" focusable="false">
+  <rect x="4.5" y="17" width="4" height="4" rx="1" fill="${C.teal}"/><rect x="10.5" y="17" width="4" height="4" rx="1" fill="${C.teal}"/>
+  <rect x="21.5" y="17" width="4" height="4" rx="1" fill="${C.coral}"/><rect x="27.5" y="17" width="4" height="4" rx="1" fill="${C.coral}"/>
+  <rect x="2" y="20" width="15" height="13" rx="3" fill="${C.teal}"/><rect x="19" y="20" width="15" height="13" rx="3" fill="${C.coral}"/>
+  <rect x="12.5" y="3.5" width="4" height="4" rx="1" fill="${C.yelD}"/><rect x="19.5" y="3.5" width="4" height="4" rx="1" fill="${C.yelD}"/>
+  <rect x="10" y="6.5" width="16" height="13" rx="3" fill="${C.yel}"/></svg>`;
+
+const I = {
+  brick:'<rect x="3" y="10" width="18" height="10" rx="2"/><path d="M7 10V7.5h4V10M13 10V7.5h4V10"/>',
+  flag:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>',
+  store:'<path d="M3 9l1.6-5h14.8L21 9"/><path d="M3 9h18v1.4a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0Z"/><path d="M5 13v7h14v-7"/><path d="M10 20v-4h4v4"/>',
+  piggy:'<path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/><path d="M2 9v1c0 1.1.9 2 2 2h1"/><path d="M16 11h.01"/>',
+  user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  coins:'<circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/>',
+  bag:'<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+  pie:'<path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>',
+  heart:'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+  sprout:'<path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>',
+  lock:'<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  minus:'<path d="M5 12h14"/>',
+  hammer:'<path d="m15 12-8.5 8.5a2.12 2.12 0 0 1-3-3L12 9"/><path d="M17.64 15 22 10.64"/><path d="m20.91 11.7-1.25-1.25c-.6-.6-.93-1.4-.93-2.25v-.86L16.01 4.6a5.56 5.56 0 0 0-3.94-1.64H9l.92.82A6.18 6.18 0 0 1 12 8.4v1.56l2 2h2.47l2.26 1.91"/>',
+  move:'<path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/>',
+  undo:'<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+  chev:'<path d="m9 18 6-6-6-6"/>',
+  star:'<path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z" fill="currentColor"/>',
+  bulb:'<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+  thumb:'<path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/>',
+  info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+  book:'<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>',
+  receipt:'<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-8M16 12h-8M13 16h-5"/>',
+  reset:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
+  sparkle:'<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/>',
+  calendar:'<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  arrowIn:'<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>',
+  arrowOut:'<path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/>',
+};
+const icon = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${I[n]}</svg>`;
+
+const ITEMS = {
+  tent:        { name:'起點帳篷', cat:'building', w:1, h:1, movable:true, source:'新手禮包', desc:'你在積木島上的第一個家，一切從這裡開始。' },
+  rock:        { name:'島嶼岩石', cat:'nature', w:1, h:1, movable:false, source:'島嶼原有', desc:'島上本來就有的大石頭，不能移動。' },
+  tree:        { name:'小樹', cat:'deco', w:1, h:1, price:20, repeat:true, movable:true, desc:'讓島嶼多一點綠意，也能幫居民遮陽。' },
+  flower:      { name:'花圃', cat:'deco', w:1, h:1, price:15, repeat:true, movable:true, desc:'三種顏色的小花，放在路邊特別好看。' },
+  lamp:        { name:'路燈', cat:'deco', w:1, h:1, price:25, repeat:true, movable:true, desc:'晚上也能看清楚回家的路。' },
+  road:        { name:'石板路', cat:'terrain', w:1, h:1, price:5, repeat:true, movable:true, flat:true, desc:'一格一格鋪出島上的小路。' },
+  pond:        { name:'小湖泊', cat:'terrain', w:2, h:2, price:60, repeat:true, movable:true, flat:true, desc:'長著睡蓮的小湖。' },
+  shop:        { name:'小商店', cat:'building', w:2, h:2, price:120, unique:true, movable:true, desc:'島上的第一家商店，居民可以在這裡買東西。' },
+  library:     { name:'圖書館', cat:'building', w:2, h:2, price:160, unique:true, movable:true, minLevel:2, desc:'可以借書、學新知識的地方。' },
+  house:       { name:'夢想小屋', cat:'building', w:2, h:2, price:150, unique:true, movable:true, goalOnly:true, desc:'紅色積木屋頂的小屋。存滿儲蓄目標就能解鎖。' },
+  hatExplorer: { name:'探險帽', cat:'wear', price:30, unique:true, desc:'戴上它，去島上每個角落探險。' },
+  hatCap:      { name:'棒球帽', cat:'wear', price:25, unique:true, desc:'深藍色的帽子，前面有一顆黃色星星。' },
+};
+const CAT_LABEL = { building:'建築', deco:'裝飾', terrain:'地形', wear:'造型', nature:'自然' };
+const SHOP_ORDER = ['tree', 'flower', 'lamp', 'road', 'pond', 'shop', 'library', 'house', 'hatExplorer', 'hatCap'];
+const SHOP_CATS = [['all', '全部'], ['deco', '裝飾'], ['building', '建築'], ['terrain', '地形'], ['wear', '造型']];
+const placeable = t => ['building', 'deco', 'terrain'].includes(ITEMS[t].cat);
+
+const CATS = {
+  earn:  { label:'賺錢', icon:'coins' },
+  spend: { label:'消費', icon:'bag' },
+  save:  { label:'儲蓄', icon:'piggy' },
+  plan:  { label:'規劃', icon:'pie' },
+  share: { label:'分享', icon:'heart' },
+  risk:  { label:'風險', icon:'sprout' },
+};
+
+const QUESTS = [
+  {
+    id:'q-toy', cat:'spend', title:'夢想玩具店', summary:'很想要的玩具和存錢目標，該怎麼選？', xp:30, coins:10, minLevel:1, kind:'choice',
+    art:['car', 'house'],
+    story:['島上的玩具店新進了一台遙控玩具車，售價 <b>60</b> 積木幣。', '你也正在為 <b>150</b> 積木幣的「夢想小屋」存錢。故事裡，你現在有 <b>100</b> 積木幣。'],
+    resources:[['故事裡的錢包', 100], ['玩具車', 60], ['夢想小屋', 150]],
+    ask:'你會怎麼做？',
+    options:[
+      { key:'A', text:'買下玩具車', hint:'花 60，手上剩 40', stats:[['手上可用', 40, '積木幣'], ['夢想小屋還差', 150, '積木幣']], goal:0,
+        pros:['馬上就能玩到想要的玩具車。', '手上還有 40 積木幣可以用。'], cons:['夢想小屋還沒開始存，要等比較久才能蓋好。'] },
+      { key:'B', text:'先不買，100 全部存起來', hint:'全部放進夢想小屋', stats:[['手上可用', 0, '積木幣'], ['夢想小屋還差', 50, '積木幣']], goal:100,
+        pros:['一次存到三分之二，離夢想小屋只差 50。'], cons:['手上沒有積木幣，臨時想用錢會不方便。', '玩具車也要等一等。'] },
+      { key:'C', text:'暫時不買，存 70、留 30', hint:'一部分存起來，一部分日常用', stats:[['手上可用', 30, '積木幣'], ['夢想小屋還差', 80, '積木幣']], goal:70,
+        pros:['一邊存錢，一邊保留日常要用的錢，比較有彈性。'], cons:['玩具車和夢想小屋都還要再等一陣子。'] },
+    ],
+    reflect:'如果玩具車下個月會打折，你的決定會改變嗎？',
+  },
+  {
+    id:'q-bakery', cat:'earn', title:'麵包店小幫手', summary:'用不同方式幫忙，收入和花的時間也不一樣。', xp:35, coins:15, minLevel:1, kind:'choice',
+    art:['shop'],
+    story:['島上的麵包店今天訂單特別多，老闆想請小幫手。', '你有一個下午的時間，可以選一種幫忙方式。'],
+    ask:'你想怎麼幫忙？',
+    options:[
+      { key:'A', text:'自己送 3 份麵包', hint:'花 1 小時，收入 30', stats:[['你的收入', 30, '積木幣'], ['花的時間', 1, '小時']],
+        pros:['付出時間就能拿到收入，很穩定。'], cons:['送麵包要花力氣，這段時間不能做別的事。'] },
+      { key:'B', text:'幫忙設計新招牌', hint:'花 2 小時，今天收入 20', stats:[['今天收入', 20, '積木幣'], ['之後可能多', 20, '積木幣'], ['花的時間', 2, '小時']],
+        pros:['用創意讓麵包店變得更好，未來可能賺更多。'], cons:['要等比較久，而且客人不一定會變多。'] },
+      { key:'C', text:'和朋友一起送 6 份', hint:'花 1 小時，兩人平分 50', stats:[['你的收入', 25, '積木幣'], ['完成訂單', 6, '份'], ['花的時間', 1, '小時']],
+        pros:['合作可以完成更多工作，也比較有趣。'], cons:['收入要和朋友分，每個人拿到的比自己做少一點。'] },
+    ],
+    reflect:'除了幫忙送東西，還有哪些事情可以賺到收入？',
+  },
+  {
+    id:'q-jars', cat:'plan', title:'零用錢分三罐', summary:'把 50 積木幣分到花用、儲蓄和分享。', xp:40, coins:15, minLevel:1, kind:'alloc',
+    art:['jar'],
+    story:['這週你拿到 <b>50</b> 積木幣零用錢。', '試著把它分到三個罐子裡，每次可以調整 5 積木幣。'],
+    ask:'你會怎麼分？',
+    reflect:'如果下週有很想買的東西，你會調整哪一個罐子？',
+  },
+  {
+    id:'q-rain', cat:'share', title:'島民的雨天', summary:'花店屋頂被雨打壞了，你會怎麼幫忙？', xp:30, coins:10, minLevel:2, kind:'choice',
+    art:['cloud', 'flower'],
+    story:['一場大雨讓島上花店的屋頂破了，店長需要 <b>40</b> 積木幣修理。', '故事裡，你有 <b>80</b> 積木幣，正在存錢買新的腳踏車。'],
+    resources:[['故事裡的錢包', 80], ['修理費', 40]],
+    ask:'你會怎麼做？',
+    options:[
+      { key:'A', text:'拿出 40 幫店長修屋頂', hint:'手上剩 40', stats:[['手上剩下', 40, '積木幣'], ['花店屋頂', '修好了', '']],
+        pros:['店長馬上就能重新開店。'], cons:['腳踏車要再等一陣子。'] },
+      { key:'B', text:'出 10，再邀大家一起出一點', hint:'手上剩 70', stats:[['手上剩下', 70, '積木幣'], ['花店屋頂', '大家一起湊', '']],
+        pros:['一起幫忙，每個人的負擔都比較小。'], cons:['要花時間邀請大家，不一定馬上湊齊。'] },
+      { key:'C', text:'不出錢，去幫忙整理店面', hint:'手上還是 80', stats:[['手上剩下', 80, '積木幣'], ['你付出的', '時間和力氣', '']],
+        pros:['幫助別人不一定要用錢，時間和力氣也很珍貴。'], cons:['屋頂的修理費還需要其他人幫忙。'] },
+      { key:'D', text:'這次先不幫忙', hint:'照原本的計畫存錢', stats:[['手上剩下', 80, '積木幣'], ['花店屋頂', '還在等修理', '']],
+        pros:['可以照原本的計畫存錢買腳踏車。'], cons:['花店可能要等比較久才能重新開店。', '下次也可以用其他方式表達關心。'] },
+    ],
+    reflect:'幫助別人的時候，除了錢，還可以付出什麼？',
+  },
+  { id:'q-seeds', cat:'risk', title:'兩種種子', summary:'穩穩長大的種子，和可能大豐收也可能失敗的種子。', xp:40, coins:15, minLevel:3, kind:'choice' },
+];
+const JARS = [
+  { key:'spend', label:'花用', desc:'現在想買的東西', color:C.coral },
+  { key:'save', label:'儲蓄', desc:'以後的大目標', color:C.teal },
+  { key:'share', label:'分享', desc:'幫助別人或送禮物', color:C.yel },
+];
+
+const LV = [0, 100, 250, 450, 700];
+const LV_NAME = ['', '積木新手', '小小建築師', '島嶼規劃師', '理財設計師', '財富建築大師'];
+const TX_META = {
+  initial_grant:     { label:'初始積木幣', ic:'sparkle', tone:'in' },
+  allowance:         { label:'零用錢', ic:'calendar', tone:'in' },
+  quest_reward:      { label:'任務獎勵', ic:'star', tone:'in' },
+  purchase:          { label:'購買', ic:'bag', tone:'out' },
+  goal_contribution: { label:'存入目標', ic:'arrowIn', tone:'save' },
+  goal_withdrawal:   { label:'從目標取回', ic:'arrowOut', tone:'save' },
+  admin_adjustment:  { label:'調整', ic:'receipt', tone:'out' },
+};
+
+/* =========================================================
+   狀態（原型存在 localStorage；正式版以伺服器帳本為準）
+   ========================================================= */
+const STORE_KEY = 'wealth-blocks-proto-v1';
+
+function defaultState() {
+  const T = (md, hm) => new Date(`2026-${md}T${hm}:00+08:00`).getTime();
+  const rows = [
+    ['initial_grant', 150, '歡迎禮：初始積木幣', T('10-12', '09:00')],
+    ['allowance', 30, '每週零用錢', T('10-13', '08:00')],
+    ['purchase', -20, '購買「小樹」', T('10-14', '16:20')],
+    ['goal_contribution', -50, '存入「夢想小屋」', T('10-15', '19:05')],
+    ['allowance', 30, '每週零用錢', T('10-20', '08:00')],
+    ['goal_contribution', -40, '存入「夢想小屋」', T('10-20', '08:10')],
+  ];
+  let bal = 0;
+  const tx = rows.map(([type, amount, desc, at], i) => { bal += amount; return { id:'t' + (i + 1), type, amount, desc, at, after:bal }; }).reverse();
+  return {
+    v:1, seq:100,
+    user:{ name:'小安', age:'9–10 歲', hat:null },
+    xp:0, balance:bal, tx,
+    inv:{ flower:1, road:2 },
+    owned:{},
+    objects:[
+      { id:'o1', type:'rock', x:7, y:4 },
+      { id:'o2', type:'rock', x:1, y:6 },
+      { id:'o3', type:'tent', x:3, y:3 },
+      { id:'o4', type:'flower', x:4, y:3 },
+      { id:'o5', type:'road', x:3, y:4 },
+      { id:'o6', type:'road', x:3, y:5 },
+      { id:'o7', type:'road', x:3, y:6 },
+      { id:'o8', type:'tree', x:1, y:2 },
+    ],
+    goals:[{ id:'g1', title:'夢想小屋', target:150, saved:90, reward:'house', status:'active' }],
+    done:{}, log:[],
+  };
+}
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    if (s && s.v === 1) return s;
+  } catch (e) { /* 無法讀取時用預設資料 */ }
+  return defaultState();
+}
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* 忽略 */ } }
+
+let state = load();
+const ui = { view:'island', build:null, sheet:null, shopCat:'all', questCat:'all', ledgerFilter:'all', busy:false, toast:null, justPlaced:null, bump:false };
+
+/* =========================================================
+   工具
+   ========================================================= */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const nid = p => p + (++state.seq);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+function when(ts) {
+  const d = new Date(ts), now = new Date();
+  const hm = d.toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit', hour12:false });
+  return d.toDateString() === now.toDateString() ? `今天 ${hm}` : `${d.getMonth() + 1}/${d.getDate()} ${hm}`;
+}
+const levelOf = xp => { let l = 1; for (let i = 1; i < LV.length; i++) if (xp >= LV[i]) l = i + 1; return l; };
+function xpInfo() {
+  const l = levelOf(state.xp), base = LV[l - 1], next = LV[l] ?? base + 300;
+  return { l, cur:state.xp - base, max:next - base, pct:Math.round((state.xp - base) / (next - base) * 100) };
+}
+const objCount = t => state.objects.filter(o => o.type === t).length;
+const ownedCount = t => (state.inv[t] || 0) + objCount(t);
+const hasUnique = t => !!(state.owned[t] || ownedCount(t) > 0);
+const placeableInv = () => Object.keys(state.inv).filter(t => state.inv[t] > 0 && placeable(t));
+const activeGoals = () => state.goals.filter(g => g.status === 'active');
+/* 首頁與側欄顯示最接近完成的目標 */
+const topGoal = () => activeGoals().sort((a, b) => b.saved / b.target - a.saved / a.target)[0];
+function questState(q) {
+  if (levelOf(state.xp) < q.minLevel || !q.options && q.kind !== 'alloc') return 'locked';
+  return state.done[q.id] ? 'done' : 'open';
+}
+const nextQuest = () => QUESTS.find(q => questState(q) === 'open');
+function bricks(pct, cls = '', label = '') {
+  let h = '';
+  for (let i = 0; i < 10; i++) {
+    const f = clamp(pct - i * 10, 0, 10);
+    h += f >= 10 ? '<i class="on"></i>' : f > 0 ? `<i class="part" style="--p:${f * 10}%"></i>` : '<i></i>';
+  }
+  return `<div class="bricks ${cls}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"${label ? ` aria-label="${esc(label)}"` : ''}>${h}</div>`;
+}
+function avatarSVG(hat) {
+  const hats = {
+    hatExplorer:`<ellipse cx="24" cy="15" rx="21" ry="4.5" fill="${C.wood}"/><path d="M11 15C11 1 37 1 37 15Z" fill="#D9A877"/><rect x="11.3" y="10.5" width="25.4" height="4" fill="${C.navy}"/>`,
+    hatCap:`<path d="M34 13.5 L46 15.5 Q46 19.5 37 18.5Z" fill="${C.navyD}"/><path d="M9 16C9 1 37 1 37 16Z" fill="${C.navy}"/><rect x="9" y="13.5" width="28" height="3.5" rx="1.5" fill="${C.navyD}"/><path d="M23 4.5l1.2 2.5 2.7.4-2 1.9.5 2.7-2.4-1.3-2.4 1.3.5-2.7-2-1.9 2.7-.4Z" fill="${C.yel}"/>`,
+  };
+  return `<svg viewBox="0 0 48 50" aria-hidden="true" focusable="false">
+    <rect x="18" y="6" width="12" height="8" rx="2.5" fill="${C.yelD}"/>
+    <rect x="8" y="11" width="32" height="31" rx="10" fill="${C.yel}"/>
+    <circle cx="19" cy="25" r="2.6" fill="${C.navy}"/><circle cx="29" cy="25" r="2.6" fill="${C.navy}"/>
+    <path d="M18 31.5q6 5 12 0" stroke="${C.navy}" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <circle cx="13.5" cy="31" r="2.6" fill="${C.coralL}" opacity=".55"/><circle cx="34.5" cy="31" r="2.6" fill="${C.coralL}" opacity=".55"/>
+    <rect x="12" y="42" width="24" height="10" rx="4" fill="${C.navy}"/>
+    ${hat ? hats[hat] : ''}</svg>`;
+}
+const avatar = () => `<span class="av">${avatarSVG(state.user.hat)}</span>`;
+
+/* =========================================================
+   規則（正式版這些都在伺服器端執行）
+   ========================================================= */
+function addTx(type, amount, desc) {
+  state.balance += amount;
+  state.tx.unshift({ id:nid('t'), type, amount, desc, at:Date.now(), after:state.balance });
+}
+/* 模擬伺服器處理：按鈕進入處理中，避免重複送出 */
+function serverish(fn) {
+  if (ui.busy) return;
+  ui.busy = true; render();
+  setTimeout(() => { ui.busy = false; fn(); save(); render(); }, 380);
+}
+const busyAttr = () => ui.busy ? 'disabled aria-busy="true"' : '';
+
+function checkPlace(type, x, y, ignoreId) {
+  const it = ITEMS[type];
+  for (let dy = 0; dy < it.h; dy++) for (let dx = 0; dx < it.w; dx++) {
+    if (!isLand(x + dx, y + dy)) return { ok:false, msg:'超出島嶼範圍了，要放在綠色的土地上' };
+  }
+  for (const o of state.objects) {
+    if (o.id === ignoreId) continue;
+    const oi = ITEMS[o.type];
+    if (x < o.x + oi.w && x + it.w > o.x && y < o.y + oi.h && y + it.h > o.y) return { ok:false, msg:`和「${oi.name}」重疊了，換個位置吧` };
+  }
+  return { ok:true, msg:'這裡可以放！' };
+}
+function findSpot(type, ignoreId) {
+  const it = ITEMS[type], cands = [];
+  /* 離中心近、周圍空曠的位置優先，避免一放就和其他建築擠在一起 */
+  const busy = (x, y) => state.objects.some(o => o.id !== ignoreId && !ITEMS[o.type].flat && x >= o.x && x < o.x + ITEMS[o.type].w && y >= o.y && y < o.y + ITEMS[o.type].h);
+  for (let y = 0; y <= ROWS - it.h; y++) for (let x = 0; x <= COLS - it.w; x++) {
+    let crowd = 0;
+    for (let dy = -1; dy <= it.h; dy++) for (let dx = -1; dx <= it.w; dx++) if (busy(x + dx, y + dy)) crowd++;
+    cands.push({ x, y, d:Math.hypot(x + it.w / 2 - 4.5, y + it.h / 2 - 4.5) + crowd * 1.5 });
+  }
+  cands.sort((a, b) => a.d - b.d);
+  const hit = cands.find(c => checkPlace(type, c.x, c.y, ignoreId).ok);
+  return hit ? { x:hit.x, y:hit.y } : null;
+}
+function freeCells() {
+  let n = 0;
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    if (!isLand(x, y)) continue;
+    if (!state.objects.some(o => x >= o.x && x < o.x + ITEMS[o.type].w && y >= o.y && y < o.y + ITEMS[o.type].h)) n++;
+  }
+  return n;
+}
+function shopState(t) {
+  const it = ITEMS[t];
+  if (it.goalOnly) return hasUnique(t) ? 'owned' : 'goal';
+  if (it.unique && hasUnique(t)) return 'owned';
+  if (it.minLevel && levelOf(state.xp) < it.minLevel) return 'locked';
+  if (state.balance < it.price) return 'poor';
+  return 'buy';
+}
+
+/* =========================================================
+   畫面：外框
+   ========================================================= */
+function viewTop() {
+  const x = xpInfo();
+  return `
+    <a class="brand" href="#" data-action="nav" data-view="island" aria-label="財富積木，回到積木島">${LOGO}<span class="brand-text"><b>財富積木</b><small>WEALTH BLOCKS</small></span></a>
+    <span class="mode-badge">Kids 財富遊樂場</span>
+    <span class="top-spacer"></span>
+    <div class="top-level" title="經驗 ${x.cur}/${x.max}"><span class="lv-badge">Lv.${x.l}</span><span>${LV_NAME[x.l]}</span><span class="xpbar" aria-hidden="true"><i style="width:${x.pct}%"></i></span><span class="num" style="color:var(--ink-2)">${x.cur}/${x.max}</span></div>
+    <button class="coinpill ${ui.bump ? 'bump' : ''}" data-action="ledger" aria-label="積木幣 ${state.balance}，查看帳本">${COIN}<span class="num" data-coin>${state.balance}</span></button>
+    <button class="avatar-btn" data-action="nav" data-view="me" aria-label="我的">${avatar()}<span class="avatar-name">${esc(state.user.name)}</span></button>`;
+}
+const NAV = [['island', '島嶼', 'brick'], ['quests', '任務', 'flag'], ['shop', '商店', 'store'], ['goals', '目標', 'piggy'], ['me', '我的', 'user']];
+function viewNav(kind) {
+  const open = QUESTS.filter(q => questState(q) === 'open').length;
+  const items = NAV.map(([v, label, ic]) => {
+    const cur = ui.view === v ? 'aria-current="page"' : '';
+    const dot = v === 'quests' && open ? `<span class="nav-dot" aria-label="${open} 個可挑戰">${open}</span>` : '';
+    return kind === 'tab'
+      ? `<button class="tab" data-action="nav" data-view="${v}" ${cur}><span class="ti">${icon(ic)}</span>${label}${dot}</button>`
+      : `<button class="navlink" data-action="nav" data-view="${v}" ${cur}>${icon(ic)}<span>${label}</span>${dot}</button>`;
+  }).join('');
+  return kind === 'tab' ? items : `${items}<div class="nav-sep"></div><button class="navlink" data-action="ledger">${icon('receipt')}<span>帳本</span></button>`;
+}
+function viewMain() {
+  switch (ui.view) {
+    case 'quests': return viewQuests();
+    case 'shop': return viewShop();
+    case 'goals': return viewGoals();
+    case 'me': return viewMe();
+    default: return viewIsland();
+  }
+}
+
+/* =========================================================
+   畫面：積木島
+   ========================================================= */
+function viewIsland() {
+  const x = xpInfo();
+  return `
+  <section class="view-island ${ui.build ? 'building' : ''}">
+    <div class="xpstrip"><span class="lv-badge">Lv.${x.l}</span><span>${LV_NAME[x.l]}</span><span class="xpbar" aria-hidden="true"><i style="width:${x.pct}%"></i></span><span class="num">${x.cur}/${x.max}</span></div>
+    <div class="board-wrap">
+      <div class="board-head"><h1 class="board-title">${esc(state.user.name)}的積木島</h1><span class="board-meta">${state.objects.length} 件作品 · 空地 ${freeCells()} 格</span></div>
+      ${boardHTML()}
+    </div>
+    ${ui.build ? trayHTML() : islandCards()}
+  </section>`;
+}
+function boardHTML() {
+  const b = ui.build, s = b && b.sel;
+  const placing = s && (s.kind === 'new' || s.kind === 'move');
+  const picked = s && (s.kind === 'pick' || s.kind === 'move') ? s.id : null;
+  let cells = '';
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    if (!isLand(x, y)) { cells += '<i class="cell"></i>'; continue; }
+    const c = ['cell', 'l'];
+    if (!isLand(x - 1, y) && !isLand(x, y - 1)) c.push('tl');
+    if (!isLand(x + 1, y) && !isLand(x, y - 1)) c.push('tr');
+    if (!isLand(x - 1, y) && !isLand(x, y + 1)) c.push('bl');
+    if (!isLand(x + 1, y) && !isLand(x, y + 1)) c.push('br');
+    if (!isLand(x, y + 1)) c.push('eb');
+    cells += `<i class="${c.join(' ')}"></i>`;
+  }
+  const wave = `<svg viewBox="0 0 40 14" aria-hidden="true"><path d="M2 9q5-6 10 0t10 0 10 0" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg>`;
+  const boat = `<svg viewBox="0 0 40 36" aria-hidden="true"><path d="M20 4v22" stroke="${C.navy}" stroke-width="2"/><path d="M21 5l12 17H21Z" fill="${C.yel}"/><path d="M19 9l-9 13h9Z" fill="#fff"/><path d="M5 25h30l-5 8H10Z" fill="${C.coral}"/><path d="M8 29h24" stroke="${C.coralD}" stroke-width="2"/></svg>`;
+  return `
+    <div class="board ${b ? 'building' : ''}">
+      <span class="wave" style="left:76%;top:6%">${wave}</span>
+      <span class="wave" style="left:4%;top:28%">${wave}</span>
+      <span class="wave" style="left:86%;top:57%">${wave}</span>
+      <span class="boat" style="left:6%;top:78%">${boat}</span>
+      <div class="grid ${placing ? 'placing' : ''}" data-action="board" ${placing ? 'tabindex="0" role="group" aria-label="島嶼格線：用方向鍵移動位置，按 Enter 放置，Esc 取消"' : ''}>
+        <div class="cells" aria-hidden="true">${cells}</div>
+        <div class="gridlines" aria-hidden="true"></div>
+        <div class="objs">${state.objects.map(o => objHTML(o, picked)).join('')}</div>
+        <div id="ghost-layer">${ghostHTML()}</div>
+      </div>
+      <button class="btn ${b ? 'btn-success' : 'btn-primary'} fab" data-action="${b ? 'build-done' : 'build-start'}">${icon(b ? 'check' : 'hammer')}${b ? '完成' : '建造'}</button>
+    </div>`;
+}
+function placeStyle(type, x, y) {
+  const it = ITEMS[type], [, vh] = ART[type]();
+  return `left:${x / COLS * 100}%;bottom:${(ROWS - (y + it.h)) / ROWS * 100}%;width:${it.w / COLS * 100}%;height:${vh / 40 / ROWS * 100}%`;
+}
+function objHTML(o, picked) {
+  const it = ITEMS[o.type];
+  const z = it.flat ? 1 : (o.y + it.h) * 10 + o.x;
+  const moving = ui.build?.sel?.kind === 'move' && o.id === picked;
+  const cls = ['obj', o.id === picked && !moving ? 'sel' : '', moving ? 'moving' : '', ui.justPlaced === o.id ? 'pop' : ''].join(' ');
+  return `<button class="${cls}" data-action="obj" data-id="${o.id}" style="${placeStyle(o.type, o.x, o.y)};z-index:${z}" aria-label="${esc(it.name)}，第 ${o.y + 1} 列第 ${o.x + 1} 格">${artSVG(o.type)}</button>`;
+}
+function ghostHTML() {
+  const b = ui.build, s = b?.sel;
+  if (!s || !b.ghost || !(s.kind === 'new' || s.kind === 'move')) return '';
+  const it = ITEMS[s.type], { x, y } = b.ghost;
+  const ok = checkPlace(s.type, x, y, s.kind === 'move' ? s.id : null).ok;
+  return `<div class="fp ${ok ? 'ok' : 'bad'}" style="left:${x / COLS * 100}%;top:${y / ROWS * 100}%;width:${it.w / COLS * 100}%;height:${it.h / ROWS * 100}%"></div>
+    <div class="ghost ${ok ? '' : 'bad'}" style="${placeStyle(s.type, x, y)}">${artSVG(s.type)}</div>`;
+}
+function buildStatus() {
+  const b = ui.build, s = b?.sel;
+  if (!s) return { tone:'', text:'選一件收藏放到島上，或點島上的作品來移動。' };
+  const it = ITEMS[s.kind === 'pick' ? state.objects.find(o => o.id === s.id).type : s.type];
+  if (s.kind === 'pick') return it.movable ? { tone:'', text:`選好了「${it.name}」，要移動還是收回？` } : { tone:'', text:`「${it.name}」是${it.source}的，不能移動。` };
+  if (!b.ghost) return { tone:'', text:`點島上的位置來放「${it.name}」（佔 ${it.w}×${it.h} 格）` };
+  const chk = checkPlace(s.type, b.ghost.x, b.ghost.y, s.kind === 'move' ? s.id : null);
+  return chk.ok ? { tone:'ok', text:'這裡可以放！再點一次，或按下方按鈕確認。' } : { tone:'bad', text:chk.msg };
+}
+function trayHTML() {
+  const b = ui.build, s = b.sel, st = buildStatus();
+  const inv = placeableInv();
+  const showItems = !s || s.kind === 'new';
+  let actions = '';
+  if (s && (s.kind === 'new' || s.kind === 'move')) {
+    actions = `<button class="btn btn-secondary" data-action="build-cancel">取消</button>
+      <button class="btn btn-primary" id="place-btn" data-action="place" ${st.tone === 'ok' ? '' : 'disabled'}>${icon('check')}${s.kind === 'move' ? '移到這裡' : '放在這裡'}</button>`;
+  } else if (s && s.kind === 'pick') {
+    const o = state.objects.find(o => o.id === s.id), it = ITEMS[o.type];
+    actions = it.movable
+      ? `<button class="btn btn-secondary" data-action="obj-store">${icon('undo')}收回到收藏</button><button class="btn btn-primary" data-action="obj-move">${icon('move')}移動</button>`
+      : `<button class="btn btn-secondary" data-action="build-cancel">知道了</button>`;
+  }
+  return `
+  <div class="tray">
+    <div class="tray-head"><div style="flex:1"><b>建造模式</b><p id="build-status" class="tray-status ${st.tone}">${esc(st.text)}</p></div></div>
+    ${showItems ? (inv.length
+      ? `<div class="tray-items" aria-label="可以放的收藏">${inv.map(t => `<button class="ichip" data-action="pick-item" data-type="${t}" aria-pressed="${s?.type === t}">${artSVG(t)}<span>${ITEMS[t].name}</span><span class="cnt">×${state.inv[t]}</span></button>`).join('')}</div>`
+      : `<div class="empty" style="padding:12px 0 0">收藏裡沒有可以放的東西了。去商店看看，或存滿儲蓄目標來解鎖建築。<br><button class="btn btn-secondary btn-sm" data-action="nav" data-view="shop">去商店</button></div>`) : ''}
+    ${actions ? `<div class="tray-actions">${actions}</div>` : ''}
+  </div>`;
+}
+function islandCards() {
+  const q = nextQuest(), g = topGoal(), n =placeableInv().reduce((a, t) => a + state.inv[t], 0);
+  return `
+  <div class="island-cards">
+    ${!state.log.length ? `<div class="span-all">${welcomeCard()}</div>` : ''}
+    <section><h2 class="sec-title">今日推薦任務<button class="link" data-action="nav" data-view="quests">全部任務</button></h2>
+      ${q ? questCard(q) : `<div class="card empty">今天的任務都完成了，明天再來看看新挑戰！</div>`}</section>
+    <section><h2 class="sec-title">儲蓄目標<button class="link" data-action="nav" data-view="goals">全部目標</button></h2>
+      ${g ? goalMini(g) : `<div class="card empty">還沒有進行中的目標。<br><button class="btn btn-secondary btn-sm" data-action="goal-new">新增目標</button></div>`}</section>
+    ${n ? `<div class="card nudge span-all"><p>有 ${n} 件收藏可以放到島上</p><button class="btn btn-secondary btn-sm" data-action="build-start">${icon('hammer')}去建造</button></div>` : ''}
+  </div>`;
+}
+function welcomeCard() {
+  const q = nextQuest();
+  return `<div class="welcome">
+    <div class="welcome-art">${artSVG('tent')}${artSVG('tree')}</div>
+    <div><h2>歡迎來到你的積木島！</h2><p>完成第一個理財挑戰，開始打造自己的世界吧。</p>
+    ${q ? `<button class="btn btn-primary btn-sm" data-action="quest-open" data-id="${q.id}">開始第一個挑戰</button>` : ''}</div>
+  </div>`;
+}
+
+/* =========================================================
+   畫面：任務
+   ========================================================= */
+function questCard(q) {
+  const cat = CATS[q.cat], st = questState(q), d = state.done[q.id];
+  const status = st === 'done' ? `<span class="qstate done">${icon('check')}已完成</span>` : st === 'locked' ? `<span class="qstate locked">${icon('lock')}Lv.${q.minLevel} 解鎖</span>` : '';
+  const btn = st === 'open' ? `<button class="btn btn-primary btn-sm" data-action="quest-open" data-id="${q.id}">開始挑戰</button>`
+    : st === 'done' ? `<button class="btn btn-secondary btn-sm" data-action="quest-open" data-id="${q.id}">再玩一次</button>`
+    : `<button class="btn btn-sm" disabled>還沒解鎖</button>`;
+  const rewards = st === 'done' ? `<span class="rw rw-done">${icon('check')}獎勵已領取</span>` : `<span class="rw">${icon('star')}+${q.xp} 經驗</span><span class="rw">${coinSm()}+${q.coins}</span>`;
+  return `<article class="qcard c-${q.cat} ${st}">
+    <div class="qcard-top"><span class="cat cat-${q.cat}">${icon(cat.icon)}${cat.label}</span>${status}</div>
+    <h3>${q.title}</h3><p>${q.summary}</p>
+    ${d ? `<p class="qcard-note">你選了：${esc(d.label)}</p>` : ''}
+    <div class="qcard-foot"><span class="rewards">${rewards}</span>${btn}</div>
+  </article>`;
+}
+function viewQuests() {
+  const doneN = QUESTS.filter(q => state.done[q.id]).length;
+  const list = QUESTS.filter(q => ui.questCat === 'all' || q.cat === ui.questCat);
+  return `<section>
+    <div class="view-head"><div><h1>理財任務</h1><p>每個選擇都有好處和代價，沒有標準答案。完成挑戰就能得到獎勵。</p></div></div>
+    <div class="card qprogress"><b>已完成 ${doneN} / ${QUESTS.length}</b>${bricks(doneN / QUESTS.length * 100, 'yellow', '任務完成進度')}</div>
+    <div class="chips" role="group" aria-label="任務分類">
+      <button class="chip" data-action="qcat" data-cat="all" aria-pressed="${ui.questCat === 'all'}">全部</button>
+      ${Object.entries(CATS).map(([k, c]) => `<button class="chip" data-action="qcat" data-cat="${k}" aria-pressed="${ui.questCat === k}">${c.label}</button>`).join('')}
+    </div>
+    <div class="qgrid">${list.length ? list.map(questCard).join('') : '<div class="card empty">這個分類還沒有任務。</div>'}</div>
+  </section>`;
+}
+
+/* =========================================================
+   畫面：商店
+   ========================================================= */
+function shopBadge(t) {
+  const it = ITEMS[t], st = shopState(t);
+  if (st === 'goal') return `<span class="badge badge-goal">${icon('piggy')}存錢解鎖</span>`;
+  if (st === 'locked') return `<span class="badge badge-lock">${icon('lock')}Lv.${it.minLevel} 解鎖</span>`;
+  if (st === 'owned') return `<span class="badge badge-ok">${icon('check')}已擁有</span>`;
+  if (it.unique) return `<span class="badge">限購一次</span>`;
+  const n = ownedCount(t);
+  return n ? `<span class="badge">已有 ${n}</span>` : '';
+}
+function viewShop() {
+  const list = SHOP_ORDER.filter(t => ui.shopCat === 'all' || ITEMS[t].cat === ui.shopCat);
+  return `<section>
+    <div class="view-head"><div><h1>積木商店</h1><p>用積木幣換裝飾和建築。買之前想一想：是需要，還是想要？</p></div></div>
+    <div class="chips" role="group" aria-label="商品分類">${SHOP_CATS.map(([k, l]) => `<button class="chip" data-action="scat" data-cat="${k}" aria-pressed="${ui.shopCat === k}">${l}</button>`).join('')}</div>
+    <div class="sgrid">${list.map(t => {
+      const it = ITEMS[t], st = shopState(t);
+      return `<button class="scard ${st === 'locked' || st === 'goal' ? 'dim' : ''}" data-action="item-open" data-type="${t}">
+        <span class="scard-art">${artSVG(t)}</span>
+        <span class="scard-body"><b>${it.name}</b><span class="scard-cat">${CAT_LABEL[it.cat]}${it.w ? ` · 佔 ${it.w}×${it.h} 格` : ''}</span>
+        <span class="scard-foot"><span class="price">${coinSm()}${it.price}</span>${shopBadge(t)}</span></span>
+      </button>`;
+    }).join('')}</div>
+  </section>`;
+}
+
+/* =========================================================
+   畫面：儲蓄目標
+   ========================================================= */
+function goalArt(g, cls = 'gcard-art') {
+  const done = g.status === 'completed';
+  return `<div class="${cls} ${done ? '' : 'locked'}">${g.reward ? artSVG(g.reward) : icon('piggy', 'big')}${cls === 'gcard-art' && !done && g.reward ? `<span class="lockdot">${icon('lock')}</span>` : ''}</div>`;
+}
+function goalCard(g) {
+  const pct = Math.round(g.saved / g.target * 100), left = g.target - g.saved, active = g.status === 'active';
+  const item = g.reward ? ITEMS[g.reward] : null;
+  let foot;
+  if (active) {
+    foot = `<p class="gleft">還差 <b>${left}</b> 積木幣 · 如果每週存 20，大約 ${Math.ceil(left / 20)} 週後達成</p>
+      <div class="gactions"><button class="btn btn-secondary btn-sm" data-action="goal-out" data-id="${g.id}" ${g.saved ? '' : 'disabled'}>${icon('arrowOut')}取回</button>
+      <button class="btn btn-primary btn-sm" data-action="goal-in" data-id="${g.id}">${icon('arrowIn')}存入</button></div>`;
+  } else {
+    const canPlace = item && placeable(g.reward) && (state.inv[g.reward] || 0) > 0;
+    foot = `<p class="gleft">${item ? `「${item.name}」已經解鎖${canPlace ? '，放進收藏了' : ''}。` : '這個目標完成了，做得好！'}</p>
+      ${canPlace ? `<div class="gactions"><button class="btn btn-success btn-sm" data-action="build-with" data-type="${g.reward}">${icon('hammer')}放到島上</button></div>` : ''}`;
+  }
+  return `<article class="card gcard">
+    ${goalArt(g)}
+    <div class="gcard-body">
+      <div class="gcard-title"><h3>${esc(g.title)}</h3>${active ? '' : `<span class="qstate done">${icon('check')}已達成</span>`}</div>
+      <div class="gnums"><span class="num big">${g.saved}</span><span>/ ${g.target} 積木幣</span><span class="gpct">${pct}%</span></div>
+      ${bricks(pct, '', `${g.title} 儲蓄進度`)}
+      ${foot}
+    </div>
+  </article>`;
+}
+function goalMini(g) {
+  const pct = Math.round(g.saved / g.target * 100);
+  return `<div class="card gmini">
+    ${goalArt(g, 'gmini-art')}
+    <div class="gmini-body"><b>${esc(g.title)}</b>${bricks(pct, '', `${g.title} 儲蓄進度`)}<small><span class="num">${g.saved} / ${g.target}</span> · 還差 ${g.target - g.saved}</small></div>
+    <button class="btn btn-primary btn-sm" data-action="goal-in" data-id="${g.id}">存入</button>
+  </div>`;
+}
+function viewGoals() {
+  const act = activeGoals(), done = state.goals.filter(g => g.status === 'completed');
+  return `<section>
+    <div class="view-head"><div><h1>儲蓄目標</h1><p>把積木幣放進目標，就不會不小心花掉。計畫改變時，隨時都可以取回。</p></div>
+      <button class="btn btn-secondary btn-sm" data-action="goal-new" ${act.length >= 3 ? 'disabled' : ''}>${icon('plus')}新增目標</button></div>
+    ${act.length >= 3 ? `<p class="ghint">${icon('info')}一次最多 3 個進行中的目標，先完成或取回其中一個吧。</p>` : ''}
+    <div class="ggrid">${act.length ? act.map(goalCard).join('') : `<div class="card empty">還沒有儲蓄目標。挑一個想要的建築，開始存積木幣吧！<br><button class="btn btn-primary btn-sm" data-action="goal-new">新增目標</button></div>`}</div>
+    ${done.length ? `<h2 class="sec-title" style="margin-top:26px">已達成</h2><div class="ggrid">${done.map(goalCard).join('')}</div>` : ''}
+  </section>`;
+}
+
+/* =========================================================
+   畫面：我的
+   ========================================================= */
+function viewMe() {
+  const x = xpInfo(), doneN = Object.keys(state.done).length;
+  const inv = placeableInv();
+  const wears = Object.keys(ITEMS).filter(t => ITEMS[t].cat === 'wear' && state.owned[t]);
+  const saving = activeGoals().reduce((a, g) => a + g.saved, 0);
+  return `<section>
+    <div class="view-head"><div><h1>我的</h1></div></div>
+    <div class="me-grid">
+      <div class="card me-sec span-all">
+        <div class="profile">${avatar()}<div style="flex:1"><h2>${esc(state.user.name)}</h2><p class="meta">${state.user.age} · Lv.${x.l} ${LV_NAME[x.l]} · 經驗 ${x.cur}/${x.max}</p><span class="xpbar"><i style="width:${x.pct}%"></i></span></div></div>
+        <div class="stats3">
+          <div class="stat"><small>完成任務</small><b>${doneN}</b><span>/ ${QUESTS.length}</span></div>
+          <div class="stat"><small>島上作品</small><b>${state.objects.length}</b><span>件</span></div>
+          <div class="stat"><small>儲蓄中</small><b>${saving}</b><span>積木幣</span></div>
+        </div>
+      </div>
+      <div class="card me-sec"><h2>接觸過的理財主題</h2>
+        <div class="topic-chips">${Object.entries(CATS).map(([k, c]) => {
+          const on = QUESTS.some(q => q.cat === k && state.done[q.id]);
+          return `<span class="cat ${on ? 'cat-' + k : 'off'}">${icon(on ? c.icon : 'lock')}${c.label}</span>`;
+        }).join('')}</div>
+      </div>
+      <div class="card me-sec"><h2>積木幣帳本<button class="link" data-action="ledger">查看帳本</button></h2>
+        <p style="font-size:15px">目前有 <b class="num">${state.balance}</b> 積木幣，共 ${state.tx.length} 筆紀錄。每一筆變動都會記下來。</p>
+      </div>
+      <div class="card me-sec span-all"><h2>我的收藏</h2>
+        ${inv.length || wears.length ? `<div class="inv-grid">
+          ${inv.map(t => `<div class="inv">${artSVG(t)}${ITEMS[t].name}<small>還沒放 ×${state.inv[t]}</small><button class="btn btn-secondary" data-action="build-with" data-type="${t}">放到島上</button></div>`).join('')}
+          ${wears.map(t => `<div class="inv">${artSVG(t)}${ITEMS[t].name}<small>${state.user.hat === t ? '戴著' : '造型'}</small><button class="btn ${state.user.hat === t ? 'btn-secondary' : 'btn-primary'}" data-action="wear" data-type="${t}">${state.user.hat === t ? '摘下' : '戴上'}</button></div>`).join('')}
+        </div>` : `<p class="empty" style="padding:6px 0">收藏是空的。島上的作品都已經放好了！</p>`}
+      </div>
+      <div class="card me-sec span-all"><h2>學習紀錄</h2>
+        ${state.log.length ? `<ul class="log-list">${state.log.slice(0, 8).map(l => {
+          const q = QUESTS.find(q => q.id === l.id);
+          return `<li><span class="cat cat-${q.cat}">${CATS[q.cat].label}</span><div><b>${q.title}</b><small>你選了：${esc(l.label)} · ${when(l.at)}${l.rewarded ? '' : ' · 再玩一次'}</small><small>思考題：${q.reflect}</small></div></li>`;
+        }).join('')}</ul>` : `<p class="empty" style="padding:6px 0">完成任務後，這裡會記下你的選擇和想法。</p>`}
+      </div>
+    </div>
+  </section>`;
+}
+
+/* =========================================================
+   右側欄（桌面）
+   ========================================================= */
+function viewRail() {
+  const g = topGoal();
+  return `
+    ${!state.log.length ? `<div class="rail-sec">${welcomeCard()}</div>` : ''}
+    <section class="rail-sec"><h2 class="sec-title">今日任務<button class="link" data-action="nav" data-view="quests">全部</button></h2>
+      <div class="rq-list">${QUESTS.map(q => {
+        const st = questState(q), c = CATS[q.cat];
+        const sub = st === 'done' ? '已完成 · 獎勵已領取' : st === 'locked' ? `Lv.${q.minLevel} 解鎖` : `+${q.xp} 經驗 · +${q.coins} 積木幣`;
+        return `<button class="rq" data-action="quest-open" data-id="${q.id}" ${st === 'locked' ? 'disabled' : ''}><span class="cat cat-${q.cat}">${icon(st === 'locked' ? 'lock' : st === 'done' ? 'check' : c.icon)}</span><span class="t"><b>${q.title}</b><small>${sub}</small></span>${st === 'locked' ? '' : `<span class="chev">${icon('chev')}</span>`}</button>`;
+      }).join('')}</div></section>
+    <section class="rail-sec"><h2 class="sec-title">儲蓄目標<button class="link" data-action="nav" data-view="goals">全部</button></h2>
+      ${g ? goalMini(g) : `<div class="card empty">還沒有進行中的目標。<br><button class="btn btn-secondary btn-sm" data-action="goal-new">新增目標</button></div>`}</section>
+    <section class="rail-sec"><h2 class="sec-title">近期活動<button class="link" data-action="ledger">帳本</button></h2>
+      <div class="card" style="padding:4px 14px"><ul class="act-list">${state.tx.slice(0, 5).map(txRow).join('')}</ul></div></section>`;
+}
+function txRow(t) {
+  const m = TX_META[t.type];
+  return `<li><span class="tx-ic ${m.tone}">${icon(m.ic)}</span><span class="t"><b>${esc(t.desc)}</b><small>${when(t.at)}</small></span><span class="amt ${t.amount > 0 ? 'plus' : 'minus'}">${t.amount > 0 ? '+' : '−'}${Math.abs(t.amount)}</span></li>`;
+}
+
+/* =========================================================
+   Sheet / Dialog
+   ========================================================= */
+function sheetFrame({ title, body, foot = '', cls = '', head = '' }) {
+  return `<div class="scrim" data-action="close"></div>
+  <div class="sheet ${cls}" role="dialog" aria-modal="true" aria-labelledby="sheet-title" tabindex="-1">
+    <div class="grabber" aria-hidden="true"></div>
+    <div class="sheet-head">${head}<h2 id="sheet-title">${title}</h2><button class="icon-btn" data-action="close" aria-label="關閉">${icon('x')}</button></div>
+    ${cls.includes('sheet-quest') ? questSteps() : ''}
+    <div class="sheet-body">${body}</div>
+    ${foot ? `<div class="sheet-foot">${foot}</div>` : ''}
+  </div>`;
+}
+function viewOverlay() {
+  const s = ui.sheet;
+  if (!s) return '';
+  switch (s.type) {
+    case 'quest': return questSheet();
+    case 'item': return itemSheet();
+    case 'goal-in': case 'goal-out': return goalMoveSheet();
+    case 'goal-new': return goalNewSheet();
+    case 'goal-done': return goalDoneSheet();
+    case 'ledger': return ledgerSheet();
+    case 'obj': return objSheet();
+    case 'levelup': return levelSheet();
+    case 'reset': return sheetFrame({ title:'重設原型資料？', body:'<p>會回到第一次打開的狀態：100 積木幣、夢想小屋存了 90、還沒完成任何任務。</p>',
+      foot:'<button class="btn btn-secondary" data-action="close">取消</button><button class="btn btn-danger" data-action="reset">重設</button>' });
+  }
+  return '';
+}
+
+/* --- 任務流程 --- */
+function questSteps() {
+  const st = ui.sheet.step;
+  return `<ol class="steps" aria-label="任務步驟"><li class="${st === 'play' ? 'on' : 'ok'}" ${st === 'play' ? 'aria-current="step"' : ''}>1 情境與選擇</li><li class="${st === 'result' ? 'on' : ''}" ${st === 'result' ? 'aria-current="step"' : ''}>2 結果與反思</li></ol>`;
+}
+function allocLeft(a) { return 50 - a.spend - a.save - a.share; }
+function questResult(q, s) {
+  if (q.kind === 'alloc') {
+    const a = s.alloc, pros = [], cons = [];
+    if (a.save >= 25) pros.push('一半以上存起來，為以後的大目標做準備。');
+    if (a.spend >= 25) pros.push('你重視現在就能享受的東西，這也很重要。');
+    if (a.share > 0) pros.push('你留了一份給別人，分享也是管理金錢的一部分。');
+    if (a.spend >= 10 && a.save >= 10 && a.share >= 10) pros.push('三個罐子都照顧到了，用起來很有彈性。');
+    if (!pros.length) pros.push('你有自己的分配想法，試著說說看為什麼這樣分。');
+    if (a.save === 0) cons.push('這次沒有存錢，遇到大目標時可能要花更久才能達成。');
+    if (a.spend === 0) cons.push('花用罐是空的，這週想買小東西時要先想好怎麼辦。');
+    if (a.share === 0) cons.push('這次沒有分享也沒關係，可以想想什麼時候會想幫助別人。');
+    if (a.save > 0 && a.save < 15) cons.push('儲蓄罐比較少，存到大目標的速度會慢一些。');
+    if (!cons.length) cons.push('分得很平均時，每一罐累積的速度都會慢一點。');
+    return {
+      label:`花用 ${a.spend}、儲蓄 ${a.save}、分享 ${a.share}`,
+      stats:[['花用罐', a.spend, '積木幣'], ['儲蓄罐', a.save, '積木幣'], ['分享罐', a.share, '積木幣']],
+      viz:`<div class="viz"><div class="viz-head"><span>50 積木幣怎麼分</span></div>
+        <div class="stack">${JARS.map(j => `<i style="width:${a[j.key] * 2}%;background:${j.color}"></i>`).join('')}</div>
+        <div class="legend">${JARS.map(j => `<span style="--c:${j.color}">${j.label} ${a[j.key] * 2}%</span>`).join('')}</div></div>`,
+      pros, cons,
+    };
+  }
+  const o = q.options.find(o => o.key === s.choice);
+  const viz = o.goal !== undefined
+    ? `<div class="viz"><div class="viz-head"><span>夢想小屋進度</span><span class="num">${o.goal} / 150</span></div>${bricks(o.goal / 150 * 100, '', '故事中夢想小屋的進度')}</div>` : '';
+  return { label:`${o.key}. ${o.text}`, stats:o.stats, viz, pros:o.pros, cons:o.cons };
+}
+function questSheet() {
+  const s = ui.sheet, q = QUESTS.find(x => x.id === s.id), c = CATS[q.cat];
+  const done = !!state.done[q.id];
+  const head = `<span class="cat cat-${q.cat}">${icon(c.icon)}${c.label}</span>`;
+  if (s.step === 'play') {
+    let choose;
+    if (q.kind === 'alloc') {
+      const a = s.alloc, left = allocLeft(a);
+      choose = `<div class="jars">${JARS.map(j => `<div class="jar">${jarSVG(a[j.key] / 50, j.color)}<div class="jar-info"><b>${j.label}</b><br><small>${j.desc}</small></div>
+          <div class="stepper"><button class="step" data-action="alloc" data-jar="${j.key}" data-d="-5" aria-label="${j.label}罐減少 5" ${a[j.key] <= 0 ? 'disabled' : ''}>${icon('minus')}</button>
+          <span class="num" aria-label="${j.label}罐 ${a[j.key]} 積木幣">${a[j.key]}</span>
+          <button class="step" data-action="alloc" data-jar="${j.key}" data-d="5" aria-label="${j.label}罐增加 5" ${left <= 0 ? 'disabled' : ''}>${icon('plus')}</button></div></div>`).join('')}</div>
+        <p class="alloc-left ${left ? '' : 'done'}" aria-live="polite">${left ? `還有 <b>${left}</b> 積木幣還沒分配` : '全部分配好了！'}</p>`;
+    } else {
+      choose = `<div class="opts" role="radiogroup" aria-label="${q.ask}">${q.options.map(o => `<button class="opt" role="radio" aria-checked="${s.choice === o.key}" data-action="q-choose" data-key="${o.key}">
+        <span class="opt-key">${o.key}</span><span class="opt-text"><b>${o.text}</b><small>${o.hint}</small></span><span class="opt-check">${icon('check')}</span></button>`).join('')}</div>`;
+    }
+    const can = q.kind === 'alloc' ? allocLeft(s.alloc) === 0 : !!s.choice;
+    const art = q.art.map(a => a === 'jar' ? JARS.map(j => jarSVG(.6, j.color).replace('<svg ', '<svg class="s" style="height:62%" ')).join('') : artSVG(a, a === 'car' || a === 'cloud' ? 's' : '')).join('');
+    const body = `
+      <div class="story"><div class="story-art">${art}</div><div class="story-text">${q.story.map(p => `<p>${p}</p>`).join('')}</div></div>
+      ${q.resources ? `<div class="res-row">${q.resources.map(([l, v]) => `<div class="res"><small>${l}</small><b>${coinSm()}${v}</b></div>`).join('')}</div>` : ''}
+      <p class="sim-note">${icon('info')}這是故事裡的情境，不會用到你真正的積木幣。</p>
+      <h3 class="q-ask">${q.ask}</h3>${choose}`;
+    const note = done ? `<p class="note">${icon('check')}這個任務的獎勵已經領過了，可以自由試試不同的選擇。</p>`
+      : `<p class="note">完成可得 ${icon('star')}+${q.xp} 經驗、${coinSm()}+${q.coins} 積木幣（不論選哪一個）</p>`;
+    return sheetFrame({ title:q.title, head, cls:'sheet-quest', body,
+      foot:`${note}<button class="btn btn-primary" data-action="q-confirm" ${can ? '' : 'disabled'}>${q.kind === 'alloc' ? '完成分配' : '就選這個'}</button>` });
+  }
+  const r = questResult(q, s);
+  const body = `
+    <div class="recap"><small>你的選擇</small><b>${esc(r.label)}</b></div>
+    <div class="stats">${r.stats.map(([l, v, u]) => `<div class="stat"><small>${l}</small><b${typeof v === 'string' ? ' style="font-family:var(--font-zh);font-size:17px;font-weight:700"' : ''}>${v}</b>${u ? `<span>${u}</span>` : ''}</div>`).join('')}</div>
+    ${r.viz}
+    <div class="procon">
+      <div class="pc pro"><h4>${icon('thumb')}好處</h4><ul>${r.pros.map(p => `<li>${p}</li>`).join('')}</ul></div>
+      <div class="pc con"><h4>${icon('bulb')}要想一想</h4><ul>${r.cons.map(p => `<li>${p}</li>`).join('')}</ul></div>
+    </div>
+    <p class="no-answer"><b>沒有標準答案</b>每個選擇都有好處，也有要付出的代價。重要的是想清楚自己為什麼這樣選。</p>
+    <div class="reflect"><small>思考題</small><p>${q.reflect}</p><span>可以和家人聊聊你的想法</span></div>`;
+  const claim = done
+    ? `<button class="btn btn-success" data-action="q-claim" ${busyAttr()}>${icon('check')}完成</button>`
+    : `<button class="btn btn-primary" data-action="q-claim" ${busyAttr()}>${ui.busy ? '領取中' : `領取獎勵 +${q.xp} 經驗 +${q.coins} 幣`}</button>`;
+  return sheetFrame({ title:q.title, head, cls:'sheet-quest', body,
+    foot:`<button class="btn btn-secondary" data-action="q-back" ${ui.busy ? 'disabled' : ''}>換個選擇看看</button>${claim}` });
+}
+
+/* --- 商品 --- */
+function itemSheet() {
+  const t = ui.sheet.t, it = ITEMS[t], st = shopState(t), after = state.balance - it.price;
+  const g = state.goals.find(g => g.reward === t && g.status === 'active');
+  let info = '', foot = '';
+  if (st === 'buy') {
+    info = `<div class="think">${icon('bulb')}<span>想一想：這是你「需要」的，還是「想要」的？兩種都可以，想清楚再決定就好。</span></div>`;
+    foot = `<button class="btn btn-secondary" data-action="close" ${ui.busy ? 'disabled' : ''}>再想想</button><button class="btn btn-primary" data-action="buy" data-type="${t}" ${busyAttr()}>${ui.busy ? '購買中' : `確認購買 · ${it.price}`}</button>`;
+  } else if (st === 'poor') {
+    info = `<div class="warn">${icon('info')}<span>還差 ${it.price - state.balance} 積木幣。可以先完成任務，或把它設成儲蓄目標，一點一點存。</span></div>`;
+    foot = `<button class="btn btn-secondary" data-action="nav" data-view="quests">去做任務</button>${g ? `<button class="btn btn-primary" data-action="nav" data-view="goals">查看儲蓄目標</button>` : `<button class="btn btn-primary" data-action="goal-from-item" data-type="${t}">${icon('piggy')}設成儲蓄目標</button>`}`;
+  } else if (st === 'locked') {
+    info = `<div class="think">${icon('lock')}<span>升到 Lv.${it.minLevel} 就能購買。完成理財任務可以得到經驗值。</span></div>`;
+    foot = `<button class="btn btn-primary" data-action="nav" data-view="quests">去做任務</button>`;
+  } else if (st === 'goal') {
+    info = `<div class="think">${icon('piggy')}<span>這棟建築不在商店販售，存滿儲蓄目標就能解鎖。${g ? `目前已存 ${g.saved} / ${g.target}。` : ''}</span></div>`;
+    foot = g ? `<button class="btn btn-primary" data-action="nav" data-view="goals">查看儲蓄目標</button>` : `<button class="btn btn-primary" data-action="goal-from-item" data-type="${t}">${icon('piggy')}建立儲蓄目標</button>`;
+  } else {
+    const canPlace = placeable(t) && (state.inv[t] || 0) > 0;
+    info = `<div class="okbox">${icon('check')}<span>你已經擁有這個了。</span></div>`;
+    foot = canPlace ? `<button class="btn btn-success" data-action="build-with" data-type="${t}">${icon('hammer')}放到島上</button>`
+      : it.cat === 'wear' ? `<button class="btn btn-primary" data-action="wear" data-type="${t}">${state.user.hat === t ? '摘下' : '戴上'}</button>`
+      : `<button class="btn btn-secondary" data-action="close">關閉</button>`;
+  }
+  const showPrice = st === 'buy' || st === 'poor';
+  return sheetFrame({ title:it.name, body:`
+    <div class="art-stage">${artSVG(t)}</div>
+    <div class="kv"><span class="badge">${CAT_LABEL[it.cat]}</span>${it.w ? `<span class="badge">佔 ${it.w}×${it.h} 格</span>` : ''}<span class="badge">${it.unique ? '限購一次' : '可以重複購買'}</span></div>
+    <p class="desc">${it.desc}</p>
+    ${showPrice ? `<div class="pricebox">
+      <div class="row"><span>價格</span><span class="num">${coinSm()}${it.price}</span></div>
+      <div class="row"><span>你的積木幣</span><span class="num">${state.balance}${st === 'buy' ? `<span class="arrow">→</span>${after}` : ''}</span></div>
+    </div>` : ''}
+    ${info}`, foot });
+}
+
+/* --- 目標：存入 / 取回 --- */
+function goalMoveSheet() {
+  const s = ui.sheet, g = state.goals.find(g => g.id === s.id), isIn = s.type === 'goal-in';
+  const max = isIn ? Math.min(state.balance, g.target - g.saved) : g.saved;
+  const a = clamp(s.amount, 0, max);
+  const quick = isIn ? [10, 20, 50].filter(v => v < max) : [10, 20, 50].filter(v => v < max);
+  const walletAfter = isIn ? state.balance - a : state.balance + a, goalAfter = isIn ? g.saved + a : g.saved - a;
+  let msg = '';
+  if (isIn && state.balance === 0) msg = `<div class="warn">${icon('info')}<span>錢包裡沒有積木幣了，可以先去完成任務。</span></div>`;
+  else if (!isIn) msg = `<div class="think">${icon('bulb')}<span>取回不會有任何處罰。計畫改變時，調整目標也是很好的選擇。</span></div>`;
+  return sheetFrame({ title:`${isIn ? '存入' : '取回'}「${esc(g.title)}」`, body:`
+    <div class="amount">
+      <button class="step" data-action="amt" data-d="-5" aria-label="減少 5" ${a <= 0 ? 'disabled' : ''}>${icon('minus')}</button>
+      <div><span class="num" aria-live="polite">${a}</span><span class="unit">積木幣</span></div>
+      <button class="step" data-action="amt" data-d="5" aria-label="增加 5" ${a >= max ? 'disabled' : ''}>${icon('plus')}</button>
+    </div>
+    <div class="quick">${quick.map(v => `<button class="chip" data-action="amt-set" data-v="${v}" aria-pressed="${a === v}">${v}</button>`).join('')}
+      ${max > 0 ? `<button class="chip" data-action="amt-set" data-v="${max}" aria-pressed="${a === max}">${isIn ? (max === g.target - g.saved ? `剛好補滿 ${max}` : `全部 ${max}`) : `全部 ${max}`}</button>` : ''}</div>
+    <div class="pricebox">
+      <div class="row"><span>錢包</span><span class="num">${state.balance}<span class="arrow">→</span>${walletAfter}</span></div>
+      <div class="row"><span>${esc(g.title)}</span><span class="num">${g.saved}<span class="arrow">→</span>${goalAfter} / ${g.target}</span></div>
+      ${bricks(goalAfter / g.target * 100, '', '存入後的進度')}
+    </div>
+    ${isIn && goalAfter >= g.target ? `<div class="okbox">${icon('sparkle')}<span>存入後就能達成目標，解鎖「${g.reward ? ITEMS[g.reward].name : g.title}」！</span></div>` : ''}
+    ${msg}`,
+    foot:`<button class="btn btn-secondary" data-action="close" ${ui.busy ? 'disabled' : ''}>取消</button>
+      <button class="btn btn-primary" data-action="${isIn ? 'goal-in-ok' : 'goal-out-ok'}" ${a > 0 && !ui.busy ? '' : 'disabled'} ${ui.busy ? 'aria-busy="true"' : ''}>${ui.busy ? '處理中' : `${isIn ? '存入' : '取回'} ${a} 積木幣`}</button>` });
+}
+function goalCandidates() {
+  const l = levelOf(state.xp);
+  return ['house', 'shop', 'library', 'pond'].filter(t => {
+    const it = ITEMS[t];
+    if (it.unique && hasUnique(t)) return false;
+    if (it.minLevel && l < it.minLevel) return false;
+    return !state.goals.some(g => g.status === 'active' && g.reward === t);
+  });
+}
+function goalNewSheet() {
+  const s = ui.sheet, cands = goalCandidates();
+  const custom = s.pick === 'custom';
+  const target = custom ? s.amount : (s.pick ? ITEMS[s.pick].price : 0);
+  const valid = custom ? s.title.trim().length > 0 && s.amount > 0 : !!s.pick;
+  return sheetFrame({ title:'新增儲蓄目標', body:`
+    <p style="font-weight:700;margin-bottom:10px">想為什麼存錢？</p>
+    <div class="pick-grid" role="radiogroup" aria-label="目標獎勵">
+      ${cands.map(t => `<button class="pick" role="radio" aria-checked="${s.pick === t}" data-action="gpick" data-v="${t}">${artSVG(t)}${ITEMS[t].name}<small>${ITEMS[t].price}</small></button>`).join('')}
+      <button class="pick" role="radio" aria-checked="${custom}" data-action="gpick" data-v="custom">${icon('piggy', 'big')}自己的目標<small>自訂金額</small></button>
+    </div>
+    ${custom ? `<label class="field"><span>目標名稱</span><input id="goal-title" maxlength="12" placeholder="例如：生日禮物" value="${esc(s.title)}"></label>
+      <p style="font-weight:700;font-size:14px">目標金額</p>
+      <div class="amount"><button class="step" data-action="gamt" data-d="-10" aria-label="減少 10" ${s.amount <= 10 ? 'disabled' : ''}>${icon('minus')}</button>
+      <div><span class="num">${s.amount}</span><span class="unit">積木幣</span></div>
+      <button class="step" data-action="gamt" data-d="10" aria-label="增加 10" ${s.amount >= 500 ? 'disabled' : ''}>${icon('plus')}</button></div>` : ''}
+    ${target ? `<div class="think">${icon('bulb')}<span>目標 ${target} 積木幣。如果每週存 20，大約 ${Math.ceil(target / 20)} 週可以達成。</span></div>` : ''}`,
+    foot:`<button class="btn btn-secondary" data-action="close">取消</button><button class="btn btn-primary" id="goal-create" data-action="goal-create" ${valid ? '' : 'disabled'}>建立目標</button>` });
+}
+function goalDoneSheet() {
+  const g = state.goals.find(g => g.id === ui.sheet.id), it = g.reward ? ITEMS[g.reward] : null;
+  return sheetFrame({ title:'目標達成！', body:`
+    <div class="art-stage">${it ? artSVG(g.reward) : icon('piggy', 'big')}</div>
+    <p class="desc" style="text-align:center">你存滿了 <b class="num">${g.target}</b> 積木幣${it ? `，「${it.name}」已經放進收藏` : ''}。<br>一點一點存，真的會到達目標。</p>`,
+    foot: it && placeable(g.reward) ? `<button class="btn btn-secondary" data-action="close">稍後再說</button><button class="btn btn-success" data-action="build-with" data-type="${g.reward}">${icon('hammer')}放到島上</button>`
+      : `<button class="btn btn-primary" data-action="close">太好了</button>` });
+}
+function levelSheet() {
+  const l = ui.sheet.level;
+  const items = Object.keys(ITEMS).filter(t => ITEMS[t].minLevel === l);
+  const qs = QUESTS.filter(q => q.minLevel === l);
+  return sheetFrame({ title:'升級了！', body:`
+    <div class="lvl-hero"><span class="big">Lv.${l}</span><h3>你現在是「${LV_NAME[l]}」</h3></div>
+    ${items.length || qs.length ? `<p style="font-weight:700;margin-top:10px">新解鎖</p><ul class="unlock-list">
+      ${items.map(t => `<li>${artSVG(t)}商店：${ITEMS[t].name}</li>`).join('')}
+      ${qs.map(q => `<li><span class="cat cat-${q.cat}">${icon(CATS[q.cat].icon)}${CATS[q.cat].label}</span>任務：${q.title}</li>`).join('')}</ul>` : ''}`,
+    foot:`<button class="btn btn-primary" data-action="close">太好了</button>` });
+}
+function ledgerSheet() {
+  const f = ui.ledgerFilter;
+  const match = t => f === 'all' || (f === 'in' && TX_META[t.type].tone === 'in') || (f === 'out' && t.type === 'purchase') || (f === 'save' && TX_META[t.type].tone === 'save');
+  const sum = fn => state.tx.filter(fn).reduce((a, t) => a + Math.abs(t.amount), 0);
+  const saved = state.tx.filter(t => t.type === 'goal_contribution').reduce((a, t) => a - t.amount, 0) - sum(t => t.type === 'goal_withdrawal');
+  const list = state.tx.filter(match);
+  return sheetFrame({ title:'積木幣帳本', body:`
+    <div class="bal-hero">${COIN}<div><small>目前餘額</small><b>${state.balance}</b></div></div>
+    <div class="ledger-sum">
+      <div class="stat"><small>收入</small><b>${sum(t => TX_META[t.type].tone === 'in')}</b></div>
+      <div class="stat"><small>花費</small><b>${sum(t => t.type === 'purchase')}</b></div>
+      <div class="stat"><small>存進目標</small><b>${saved}</b></div>
+    </div>
+    <div class="chips" role="group" aria-label="篩選">${[['all', '全部'], ['in', '收入'], ['out', '花費'], ['save', '儲蓄']].map(([k, l]) => `<button class="chip" data-action="lfilter" data-v="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>
+    <ul class="ledger">${list.map(t => {
+      const m = TX_META[t.type];
+      return `<li><span class="tx-ic ${m.tone}">${icon(m.ic)}</span><span class="t"><b>${esc(t.desc)}</b><small>${m.label} · ${when(t.at)}</small></span><span class="r"><span class="amt ${t.amount > 0 ? 'plus' : 'minus'}">${t.amount > 0 ? '+' : '−'}${Math.abs(t.amount)}</span><small>餘額 ${t.after}</small></span></li>`;
+    }).join('') || '<li class="empty">沒有符合的紀錄</li>'}</ul>
+    <p class="sim-note">${icon('info')}帳本只能新增，不能修改。記錯時會用一筆反向紀錄更正。</p>` });
+}
+function objSheet() {
+  const o = state.objects.find(o => o.id === ui.sheet.id);
+  if (!o) return '';
+  const it = ITEMS[o.type];
+  const src = it.source || (o.type === 'house' ? '儲蓄目標獎勵' : '商店購買');
+  return sheetFrame({ title:it.name, body:`
+    <div class="art-stage">${artSVG(o.type)}</div>
+    <div class="kv"><span class="badge">${CAT_LABEL[it.cat]}</span><span class="badge">佔 ${it.w}×${it.h} 格</span><span class="badge">來源：${src}</span></div>
+    <p class="desc">${it.desc}</p>`,
+    foot: it.movable ? `<button class="btn btn-secondary" data-action="close">關閉</button><button class="btn btn-primary" data-action="obj-edit" data-id="${o.id}">${icon('move')}移動或收回</button>`
+      : `<button class="btn btn-secondary" data-action="close">關閉</button>` });
+}
+
+/* =========================================================
+   Render
+   ========================================================= */
+function setHTML(el, html) { if (el._h !== html) { el.innerHTML = html; el._h = html; } }
+let opener = null, focusSheet = false;
+function render() {
+  $('#app').classList.toggle('is-building', !!ui.build);
+  $('#device').classList.toggle('is-building', !!ui.build);
+  setHTML($('#topbar'), viewTop());
+  setHTML($('#sidenav'), viewNav('nav'));
+  setHTML($('#tabbar'), viewNav('tab'));
+  setHTML($('#main'), viewMain());
+  setHTML($('#rail'), viewRail());
+  setHTML($('#overlay'), viewOverlay());
+  renderToast();
+  ui.justPlaced = null;
+  if (ui.bump) { ui.bump = false; setTimeout(() => $('.coinpill.bump')?.classList.remove('bump'), 700); }
+  if (focusSheet) {
+    focusSheet = false;
+    const sh = $('.sheet');
+    if (sh) (sh.querySelector('[data-autofocus]') || sh).focus();
+  }
+}
+function renderToast() {
+  const t = ui.toast;
+  setHTML($('#toast'), t ? `<div class="toast ${t.action ? '' : 'no-act'}"><span>${esc(t.msg)}</span>${t.action ? `<button class="btn btn-primary" data-action="toast-act">${t.action.label}</button>` : ''}</div>` : '');
+}
+let toastTimer;
+function toast(msg, action) {
+  ui.toast = { msg, action };
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { ui.toast = null; renderToast(); }, action ? 5200 : 3200);
+  renderToast();
+}
+function openSheet(s) {
+  if (!ui.sheet) opener = document.activeElement;
+  ui.sheet = s; focusSheet = true; ui.toast = null;
+}
+function closeSheet() {
+  ui.sheet = null;
+  render();
+  if (opener && opener.isConnected) opener.focus({ preventScroll:true });
+  opener = null;
+}
+function go(view) {
+  ui.view = view; ui.build = null; ui.sheet = null;
+  render();
+  $('#main').scrollTop = 0;
+}
+function bumpCoins(from) {
+  ui.bump = true;
+  if (reduceMotion()) return;
+  const to = state.balance, t0 = performance.now();
+  const tick = now => {
+    const p = Math.min(1, (now - t0) / 650), v = Math.round(from + (to - from) * (1 - Math.pow(1 - p, 3)));
+    document.querySelectorAll('[data-coin]').forEach(el => { el.textContent = v; });
+    if (p < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+function burst() {
+  if (reduceMotion()) return;
+  const fx = $('#fx'), colors = [C.yel, C.teal, C.coral, C.navy, '#fff'];
+  let h = '';
+  for (let i = 0; i < 36; i++) {
+    h += `<i class="cf" style="--x:${Math.random() * 100}%;--c:${colors[i % 5]};--d:${1.4 + Math.random() * 1.2}s;--dl:${Math.random() * .35}s;--dx:${(Math.random() - .5) * 160}px;--r:${(Math.random() - .5) * 900}deg"></i>`;
+  }
+  fx.innerHTML = h;
+  setTimeout(() => { fx.innerHTML = ''; }, 3200);
+}
+
+/* =========================================================
+   建造互動
+   ========================================================= */
+function startBuild(type, pickId) {
+  ui.view = 'island'; ui.sheet = null;
+  ui.build = { sel:null, ghost:null };
+  if (type && state.inv[type] > 0) { ui.build.sel = { kind:'new', type }; ui.build.ghost = findSpot(type); }
+  if (pickId) ui.build.sel = { kind:'pick', id:pickId };
+  render();
+  $('#main').scrollTop = 0;
+}
+function syncBuild() {
+  const layer = $('#ghost-layer');
+  if (layer) layer.innerHTML = ghostHTML();
+  const st = buildStatus(), el = $('#build-status'), btn = $('#place-btn');
+  if (el) { el.textContent = st.text; el.className = 'tray-status ' + st.tone; }
+  if (btn) btn.disabled = st.tone !== 'ok';
+  $('#live').textContent = st.text;
+}
+function anchorFromEvent(e, type) {
+  const grid = $('.grid'), r = grid.getBoundingClientRect(), it = ITEMS[type];
+  const fx = (e.clientX - r.left) / r.width * COLS, fy = (e.clientY - r.top) / r.height * ROWS;
+  if (fx < -.5 || fy < -.5 || fx > COLS + .5 || fy > ROWS + .5) return null;
+  return { x:clamp(Math.round(fx - it.w / 2), 0, COLS - it.w), y:clamp(Math.round(fy - it.h / 2), 0, ROWS - it.h) };
+}
+function confirmPlace() {
+  const b = ui.build, s = b?.sel;
+  if (!s || !b.ghost) return;
+  const chk = checkPlace(s.type, b.ghost.x, b.ghost.y, s.kind === 'move' ? s.id : null);
+  if (!chk.ok) { toast(chk.msg); return; }
+  if (s.kind === 'new') {
+    if (!(state.inv[s.type] > 0)) return;
+    const o = { id:nid('o'), type:s.type, x:b.ghost.x, y:b.ghost.y };
+    state.objects.push(o);
+    state.inv[s.type]--;
+    ui.justPlaced = o.id;
+    b.sel = state.inv[s.type] > 0 ? { kind:'new', type:s.type } : null;
+    b.ghost = null;
+    toast(`放好了「${ITEMS[s.type].name}」${b.sel ? '，還可以再放一個' : ''}`);
+  } else {
+    const o = state.objects.find(o => o.id === s.id);
+    o.x = b.ghost.x; o.y = b.ghost.y;
+    ui.justPlaced = o.id;
+    b.sel = null; b.ghost = null;
+    toast(`「${ITEMS[o.type].name}」移好了`);
+  }
+  save(); render();
+}
+let drag = null, dragMoved = false;
+document.addEventListener('pointerdown', e => {
+  const s = ui.build?.sel;
+  if (!s || !(s.kind === 'new' || s.kind === 'move') || !e.target.closest('.grid')) return;
+  dragMoved = false;
+  if (e.pointerType !== 'mouse') drag = { x:e.clientX, y:e.clientY, id:e.pointerId };
+});
+document.addEventListener('pointermove', e => {
+  const b = ui.build, s = b?.sel;
+  if (!s || !(s.kind === 'new' || s.kind === 'move')) return;
+  const hovering = e.pointerType === 'mouse' && e.buttons === 0 && e.target.closest('.grid');
+  const dragging = drag && drag.id === e.pointerId && (dragMoved || Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 6);
+  if (!hovering && !dragging) return;
+  if (dragging) dragMoved = true;
+  const a = anchorFromEvent(e, s.type);
+  if (a && (!b.ghost || a.x !== b.ghost.x || a.y !== b.ghost.y)) { b.ghost = a; syncBuild(); }
+});
+document.addEventListener('pointerup', () => { drag = null; });
+document.addEventListener('pointercancel', () => { drag = null; });
+function onBoard(e) {
+  const b = ui.build, s = b?.sel;
+  if (!b) return;
+  if (!s || s.kind === 'pick') { if (s) { b.sel = null; render(); } return; }
+  if (dragMoved) { dragMoved = false; return; }
+  const a = anchorFromEvent(e, s.type);
+  if (!a) return;
+  if (b.ghost && a.x === b.ghost.x && a.y === b.ghost.y) { confirmPlace(); return; }
+  b.ghost = a; syncBuild();
+}
+
+/* =========================================================
+   動作
+   ========================================================= */
+const A = {
+  nav: el => go(el.dataset.view),
+  ledger: () => { openSheet({ type:'ledger' }); render(); },
+  close: () => { if (!ui.busy) closeSheet(); },
+  'reset-ask': () => { openSheet({ type:'reset' }); render(); },
+  reset: () => { state = defaultState(); save(); ui.sheet = null; ui.build = null; ui.view = 'island'; render(); toast('已重設原型資料'); },
+  'toast-act': () => { const f = ui.toast?.action?.fn; ui.toast = null; renderToast(); f && f(); },
+
+  /* 積木島 */
+  'build-start': () => startBuild(),
+  'build-with': el => startBuild(el.dataset.type),
+  'build-done': () => { ui.build = null; render(); },
+  'build-cancel': () => { ui.build.sel = null; ui.build.ghost = null; render(); },
+  'pick-item': el => {
+    const t = el.dataset.type, b = ui.build;
+    if (b.sel?.kind === 'new' && b.sel.type === t) { b.sel = null; b.ghost = null; }
+    else { b.sel = { kind:'new', type:t }; b.ghost = findSpot(t); }
+    render();
+  },
+  place: () => confirmPlace(),
+  board: (el, e) => onBoard(e),
+  obj: el => {
+    const id = el.dataset.id;
+    if (ui.build) {
+      const s = ui.build.sel;
+      if (s && (s.kind === 'new' || s.kind === 'move')) return;
+      ui.build.sel = s?.id === id ? null : { kind:'pick', id };
+      render();
+    } else { openSheet({ type:'obj', id }); render(); }
+  },
+  'obj-edit': el => startBuild(null, el.dataset.id),
+  'obj-move': () => { const s = ui.build.sel, o = state.objects.find(o => o.id === s.id); ui.build.sel = { kind:'move', id:o.id, type:o.type }; ui.build.ghost = { x:o.x, y:o.y }; render(); $('.grid.placing')?.focus({ preventScroll:true }); },
+  'obj-store': () => {
+    const s = ui.build.sel, o = state.objects.find(o => o.id === s.id);
+    state.objects = state.objects.filter(x => x.id !== o.id);
+    state.inv[o.type] = (state.inv[o.type] || 0) + 1;
+    ui.build.sel = null; save(); render();
+    toast(`「${ITEMS[o.type].name}」收回到收藏了`);
+  },
+
+  /* 任務 */
+  qcat: el => { ui.questCat = el.dataset.cat; render(); },
+  'quest-open': el => {
+    const q = QUESTS.find(q => q.id === el.dataset.id);
+    if (questState(q) === 'locked') return;
+    ui.build = null;
+    openSheet({ type:'quest', id:q.id, step:'play', choice:null, alloc:{ spend:0, save:0, share:0 } });
+    render();
+  },
+  'q-choose': el => { ui.sheet.choice = el.dataset.key; render(); },
+  alloc: el => {
+    const a = ui.sheet.alloc, k = el.dataset.jar, d = +el.dataset.d;
+    if (d > 0 && allocLeft(a) < d) return;
+    a[k] = clamp(a[k] + d, 0, 50); render();
+  },
+  'q-confirm': () => { ui.sheet.step = 'result'; render(); $('.sheet-body').scrollTop = 0; $('.sheet')?.focus(); },
+  'q-back': () => { ui.sheet.step = 'play'; render(); },
+  'q-claim': () => {
+    const s = ui.sheet, q = QUESTS.find(x => x.id === s.id), label = questResult(q, s).label;
+    const from = state.balance, lvBefore = levelOf(state.xp);
+    serverish(() => {
+      const first = !state.done[q.id];
+      if (first) {
+        addTx('quest_reward', q.coins, `任務獎勵「${q.title}」`);
+        state.xp += q.xp;
+        state.done[q.id] = { label, at:Date.now() };
+      }
+      state.log.unshift({ id:q.id, label, at:Date.now(), rewarded:first });
+      ui.sheet = null;
+      const lvAfter = levelOf(state.xp);
+      if (first) { bumpCoins(from); toast(`+${q.coins} 積木幣、+${q.xp} 經驗，已記入帳本`); }
+      else toast('完成！這個任務的獎勵之前已經領過了');
+      if (lvAfter > lvBefore) { openSheet({ type:'levelup', level:lvAfter }); burst(); }
+    });
+  },
+
+  /* 商店 */
+  scat: el => { ui.shopCat = el.dataset.cat; render(); },
+  'item-open': el => { openSheet({ type:'item', t:el.dataset.type }); render(); },
+  buy: el => {
+    const t = el.dataset.type, it = ITEMS[t];
+    serverish(() => {
+      if (shopState(t) !== 'buy') return;   // 伺服器再檢查一次價格、餘額與限購
+      addTx('purchase', -it.price, `購買「${it.name}」`);
+      if (it.cat === 'wear') state.owned[t] = true;
+      else { state.inv[t] = (state.inv[t] || 0) + 1; if (it.unique) state.owned[t] = true; }
+      const g = state.goals.find(g => g.status === 'active' && g.reward === t);
+      if (g && it.unique) {   // 已經買到了，原本為它存的錢退回錢包
+        if (g.saved > 0) addTx('goal_withdrawal', g.saved, `目標「${g.title}」結束，取回`);
+        g.saved = 0; g.status = 'archived';
+      }
+      ui.sheet = null;
+      toast(`買好了「${it.name}」，已放進收藏`, it.cat === 'wear'
+        ? { label:'戴上', fn:() => { state.user.hat = t; save(); render(); } }
+        : { label:'放到島上', fn:() => startBuild(t) });
+    });
+  },
+  'goal-from-item': el => {
+    const t = el.dataset.type;
+    if (activeGoals().length >= 3) { toast('一次最多 3 個進行中的目標'); return; }
+    state.goals.unshift({ id:nid('g'), title:ITEMS[t].name, target:ITEMS[t].price, saved:0, reward:t, status:'active' });
+    save(); go('goals');
+    toast(`已建立目標「${ITEMS[t].name}」`);
+  },
+  wear: el => {
+    const t = el.dataset.type;
+    state.user.hat = state.user.hat === t ? null : t;
+    save(); ui.sheet = null; render();
+    toast(state.user.hat ? `戴上了「${ITEMS[t].name}」` : '摘下帽子了');
+  },
+
+  /* 儲蓄目標 */
+  'goal-in': el => {
+    const g = state.goals.find(g => g.id === el.dataset.id);
+    openSheet({ type:'goal-in', id:g.id, amount:Math.min(20, state.balance, g.target - g.saved) }); render();
+  },
+  'goal-out': el => {
+    const g = state.goals.find(g => g.id === el.dataset.id);
+    openSheet({ type:'goal-out', id:g.id, amount:Math.min(20, g.saved) }); render();
+  },
+  amt: el => { ui.sheet.amount += +el.dataset.d; render(); },
+  'amt-set': el => { ui.sheet.amount = +el.dataset.v; render(); },
+  'goal-in-ok': () => {
+    const s = ui.sheet;
+    serverish(() => {
+      const g = state.goals.find(g => g.id === s.id);
+      const a = clamp(s.amount, 0, Math.min(state.balance, g.target - g.saved));
+      if (a <= 0 || g.status !== 'active') return;
+      addTx('goal_contribution', -a, `存入「${g.title}」`);
+      g.saved += a;
+      if (g.saved >= g.target) {
+        g.status = 'completed';
+        if (g.reward) { state.inv[g.reward] = (state.inv[g.reward] || 0) + 1; state.owned[g.reward] = true; }
+        ui.sheet = { type:'goal-done', id:g.id }; focusSheet = true;
+        burst();
+      } else {
+        ui.sheet = null;
+        toast(`已存入 ${a} 積木幣，還差 ${g.target - g.saved}`);
+      }
+    });
+  },
+  'goal-out-ok': () => {
+    const s = ui.sheet;
+    serverish(() => {
+      const g = state.goals.find(g => g.id === s.id);
+      const a = clamp(s.amount, 0, g.saved);
+      if (a <= 0) return;
+      addTx('goal_withdrawal', a, `從「${g.title}」取回`);
+      g.saved -= a;
+      ui.sheet = null;
+      toast(`取回 ${a} 積木幣，已回到錢包`);
+    });
+  },
+  'goal-new': () => {
+    if (activeGoals().length >= 3) { toast('一次最多 3 個進行中的目標'); return; }
+    const c = goalCandidates();
+    openSheet({ type:'goal-new', pick:c[0] || 'custom', title:'', amount:100 }); render();
+  },
+  gpick: el => { ui.sheet.pick = el.dataset.v; render(); if (el.dataset.v === 'custom') $('#goal-title')?.focus(); },
+  gamt: el => { ui.sheet.amount = clamp(ui.sheet.amount + +el.dataset.d, 10, 500); render(); },
+  'goal-create': () => {
+    const s = ui.sheet, custom = s.pick === 'custom';
+    const title = custom ? s.title.trim() : ITEMS[s.pick].name;
+    const target = custom ? s.amount : ITEMS[s.pick].price;
+    if (!title || target <= 0) return;
+    state.goals.unshift({ id:nid('g'), title, target, saved:0, reward:custom ? null : s.pick, status:'active' });
+    save(); go('goals');
+    toast(`已建立目標「${title}」`);
+  },
+  lfilter: el => { ui.ledgerFilter = el.dataset.v; render(); },
+};
+
+document.addEventListener('click', e => {
+  const pv = e.target.closest('[data-pv]');
+  if (pv) { setPreview(pv.dataset.pv); return; }
+  const el = e.target.closest('[data-action]');
+  if (!el || el.disabled) return;
+  if (el.tagName === 'A') e.preventDefault();
+  if (ui.toast && el.dataset.action !== 'toast-act' && el.closest('.sheet')) { ui.toast = null; }
+  const fn = A[el.dataset.action];
+  if (fn) fn(el, e);
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'goal-title' && ui.sheet?.type === 'goal-new') {
+    ui.sheet.title = e.target.value;
+    $('#overlay')._h = null;   // 下次 render 時重畫，但這次不打斷輸入
+    const btn = $('#goal-create');
+    if (btn) btn.disabled = !(ui.sheet.title.trim() && ui.sheet.amount > 0);
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (ui.sheet) { if (!ui.busy) closeSheet(); return; }
+    if (ui.build?.sel) { ui.build.sel = null; ui.build.ghost = null; render(); return; }
+    if (ui.build) { ui.build = null; render(); return; }
+  }
+  if (e.key === 'Tab' && ui.sheet) {   // 對話框內循環焦點
+    const f = [...$('.sheet').querySelectorAll('button:not([disabled]),input,[tabindex="0"]')];
+    if (!f.length) return;
+    if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+    else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+  }
+  const b = ui.build, s = b?.sel;
+  if (s && (s.kind === 'new' || s.kind === 'move') && e.target.classList?.contains('grid')) {
+    const d = { ArrowLeft:[-1, 0], ArrowRight:[1, 0], ArrowUp:[0, -1], ArrowDown:[0, 1] }[e.key];
+    const it = ITEMS[s.type];
+    if (d) {
+      e.preventDefault();
+      const g = b.ghost || findSpot(s.type) || { x:0, y:0 };
+      b.ghost = { x:clamp(g.x + d[0], 0, COLS - it.w), y:clamp(g.y + d[1], 0, ROWS - it.h) };
+      syncBuild();
+    } else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); confirmPlace(); $('.grid.placing')?.focus(); }
+  }
+});
+
+/* 預覽寬度切換（原型工具） */
+function setPreview(v) {
+  document.body.dataset.preview = v;
+  document.querySelectorAll('[data-pv]').forEach(b => b.setAttribute('aria-pressed', b.dataset.pv === v));
+  try { localStorage.setItem('wealth-blocks-preview', v); } catch (e) { /* 忽略 */ }
+}
+let pv = 'desktop';
+try { pv = localStorage.getItem('wealth-blocks-preview') || 'desktop'; } catch (e) { /* 忽略 */ }
+const qp = new URLSearchParams(location.search);
+if (qp.get('preview')) pv = qp.get('preview');
+setPreview(pv);
+if (qp.get('view')) ui.view = qp.get('view');
+
+render();
+})();
+</script>
+</body>
+</html>
