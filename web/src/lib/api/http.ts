@@ -1,7 +1,8 @@
 import "server-only";
 import { getSessionUser, type SessionUser } from "@/lib/auth/session";
 import { type Db, getDb } from "@/lib/db/client";
-import { AppError, unauthorized } from "@/lib/errors";
+import { readPlayMode } from "@/lib/auth/mode";
+import { AppError, unauthorized, validationFailed } from "@/lib/errors";
 
 /** API 回應格式一律是 { data, meta, errors } */
 export function ok(data: unknown, init: { status?: number; meta?: Record<string, unknown> } = {}): Response {
@@ -27,6 +28,25 @@ export function logError(error: unknown): void {
   const e = error as { name?: string; cause?: { code?: string; message?: string }; message?: string };
   const detail = e?.cause?.code ? `${e.cause.code} ${e.cause.message ?? ""}` : (e?.message ?? String(error)).split("\n")[0];
   console.error(`[wealth-blocks] ${e?.name ?? "Error"}: ${detail.slice(0, 300)}`);
+}
+
+export async function readJson(request: Request): Promise<unknown> {
+  // 只收 application/json：瀏覽器跨站送出的 text/plain 表單不會被當成 JSON 處理
+  if (!(request.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json")) {
+    throw new AppError("unsupported_media_type", "請以 Content-Type: application/json 送出", 415);
+  }
+  try {
+    return await request.json();
+  } catch {
+    throw validationFailed([{ field: "_", message: "請送出 JSON 格式的內容" }]);
+  }
+}
+
+/** 孩子模式的 API：孩子由簽章 cookie 決定，不從網址或內容帶入 */
+export async function requireActiveChild(user: SessionUser): Promise<string> {
+  const { kidChildId } = await readPlayMode(user.id);
+  if (!kidChildId) throw new AppError("no_active_child", "目前沒有正在玩的孩子", 409);
+  return kidChildId;
 }
 
 /**

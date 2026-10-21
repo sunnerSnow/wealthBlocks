@@ -2,7 +2,10 @@
 
 兒童理財遊戲化平台的正式程式。設計原型在上一層的 `design/kids-prototype.html`。
 
-目前完成 **Phase 1：專案基礎**：家長登入、建立家庭與孩子檔案（含遊戲檔案、錢包、初始積木幣、新手禮包）、家長 PIN、孩子模式外框（唯讀的積木島、帳本、個人頁），以及兒童版 MVP 全部資料表、RLS 與種子資料（5 個任務、9 種商品、10 種建築）。
+目前完成：
+
+- **Phase 1：專案基礎**：家長登入、建立家庭與孩子檔案（含遊戲檔案、錢包、初始積木幣、新手禮包）、家長 PIN、孩子模式外框（積木島、帳本、個人頁），以及兒童版 MVP 全部資料表、RLS 與種子資料（5 個任務、9 種商品、10 種建築）。
+- **Phase 2：可玩的積木島**：建造模式——從收藏放到島上、移動、收回，存在資料庫，重新登入後還在。手機點一下預覽、再點一下放下（也可以拖曳）；桌面滑鼠移過去預覽、點一下放下；鍵盤用方向鍵移動、Enter 放下、Esc 取消。放置規則（在陸地上、不重疊、收藏裡要有）在伺服器再檢查一次。
 
 技術：Next.js 16.4（App Router）＋ TypeScript ＋ Tailwind 4 ＋ Drizzle ORM ＋ PostgreSQL（正式環境用 Supabase，本機與測試用 PGlite）＋ Vitest。
 
@@ -38,6 +41,19 @@ npm run dev          # http://localhost:3000
 - 價格、獎勵、解鎖條件都在 migration 的種子資料裡，前端不能指定。
 
 與規格書第 9 節不同的地方（原因寫在 migration 開頭）：`game_profiles.user_id` 改成 `child_id`；`idempotency_key` 改成同一個錢包內唯一；收藏改成「建築定義」或「造型商品」二選一；另外加了 `purchases` 用唯一索引擋限購商品重複購買；帳本多一個遞增的 `seq` 排序用。
+
+## API
+
+孩子模式的 API 都從簽章 cookie 取得正在玩的孩子，不接受網址或內容指定孩子；會改資料的請求要 `application/json` 而且同源。回應格式 `{ data, meta, errors }`。
+
+| Method | Endpoint | 功能 |
+|---|---|---|
+| GET | `/api/game/state` | 目前孩子的遊戲狀態 |
+| GET | `/api/island` | 島上物件與收藏 |
+| POST | `/api/island/objects` | 從收藏放到島上 `{ slug, x, y }` |
+| PATCH | `/api/island/objects/:id` | 移動 `{ x, y }` |
+| DELETE | `/api/island/objects/:id` | 收回收藏 |
+
 
 ## 接上 Supabase（正式環境）
 
@@ -86,9 +102,9 @@ src/
 │   ├── login/ setup/     登入、建立家庭
 │   ├── family/           家長區、輸入 PIN
 │   ├── play/             孩子模式（layout 是外框：頂端、導覽、桌面右側欄）
-│   ├── api/game/state/   GET 目前孩子的遊戲狀態
+│   ├── api/              game/state、island、island/objects（孩子由簽章 cookie 決定）
 │   └── actions.ts        Server Actions（每個都自己檢查登入與模式）
-├── components/           積木素材、島嶼、頭像、圖示…
+├── components/           積木素材、島嶼建造（island/）、頭像、圖示…
 └── lib/
     ├── auth/             session、家長 PIN、模式 cookie、頁面守門
     ├── db/               Drizzle schema、PGlite、withUser
@@ -100,8 +116,7 @@ tests/                    Vitest
 
 ## 尚未完成
 
-- Phase 2：建造模式（放置、移動、收回建築並存檔）。
 - Phase 3：任務、商店、儲蓄目標的伺服器流程（資料表與種子資料已經建好）。
 - Phase 4：家長中心的學習進度、虛擬零用錢規則、親子討論題目。
-- Playwright 端對端測試尚未放進專案（Phase 1 的流程是用 scratchpad 的腳本手動跑過）。
+- Playwright 端對端測試尚未放進專案（Phase 1、2 的流程是用 scratchpad 的腳本跑過）。
 - Supabase 專案還沒建、migration 還沒在 SQL Editor 跑、還沒部署。

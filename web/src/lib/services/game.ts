@@ -1,31 +1,12 @@
-import { and, asc, eq, gt } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { Db } from "@/lib/db/local";
-import { buildingDefinitions, children, gameProfiles, islandObjects, userInventory, virtualWallets } from "@/lib/db/schema";
+import { children, gameProfiles, virtualWallets } from "@/lib/db/schema";
 import { withUser } from "@/lib/db/with-user";
 import type { AgeBand, AvatarKey } from "@/lib/game/input";
 import { type XpProgress, xpProgress } from "@/lib/game/levels";
+import { type InventoryItemDto, type IslandObjectDto, loadIsland } from "@/lib/services/island";
 import { type TxDto, listTransactionsForWallet } from "@/lib/services/ledger";
 import { requireChildScope } from "@/lib/services/scope";
-
-export interface IslandObjectDto {
-  id: string;
-  slug: string;
-  name: string;
-  assetKey: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  isFlat: boolean;
-  isMovable: boolean;
-}
-
-export interface InventoryItemDto {
-  slug: string;
-  name: string;
-  assetKey: string;
-  quantity: number;
-}
 
 export interface GameStateDto {
   child: { id: string; displayName: string; avatarKey: AvatarKey; ageBand: AgeBand };
@@ -53,30 +34,7 @@ export async function getGameState(db: Db, userId: string, childId: string): Pro
       .from(virtualWallets)
       .where(and(eq(virtualWallets.id, scope.walletId), eq(virtualWallets.familyId, scope.familyId)));
 
-    const island = await tx
-      .select({
-        id: islandObjects.id,
-        slug: buildingDefinitions.slug,
-        name: buildingDefinitions.name,
-        assetKey: buildingDefinitions.assetKey,
-        x: islandObjects.gridX,
-        y: islandObjects.gridY,
-        width: buildingDefinitions.width,
-        height: buildingDefinitions.height,
-        isFlat: buildingDefinitions.isFlat,
-        isMovable: buildingDefinitions.isMovable,
-      })
-      .from(islandObjects)
-      .innerJoin(buildingDefinitions, eq(buildingDefinitions.id, islandObjects.buildingDefinitionId))
-      .where(and(eq(islandObjects.gameProfileId, scope.gameProfileId), eq(islandObjects.familyId, scope.familyId)))
-      .orderBy(asc(islandObjects.gridY), asc(islandObjects.gridX));
-
-    const inventory = await tx
-      .select({ slug: buildingDefinitions.slug, name: buildingDefinitions.name, assetKey: buildingDefinitions.assetKey, quantity: userInventory.quantity })
-      .from(userInventory)
-      .innerJoin(buildingDefinitions, eq(buildingDefinitions.id, userInventory.buildingDefinitionId))
-      .where(and(eq(userInventory.gameProfileId, scope.gameProfileId), eq(userInventory.familyId, scope.familyId), gt(userInventory.quantity, 0)))
-      .orderBy(asc(buildingDefinitions.slug));
+    const { objects: island, inventory } = await loadIsland(tx, scope);
 
     return {
       child: { ...child, avatarKey: child.avatarKey as AvatarKey },
