@@ -448,6 +448,14 @@ body {
   .page-narrow {
     max-width: 460px;
   }
+  /* 登入頁標語固定一行：字級跟著卡片內容寬度縮放（16 個全形字再留一點餘裕），最大 24px */
+  .tagline-card {
+    container-type: inline-size;
+  }
+  .tagline {
+    font-size: min(24px, 100cqi / 16.5);
+    white-space: nowrap;
+  }
   .kid-list {
     display: grid;
     gap: 12px;

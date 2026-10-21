@@ -72,6 +72,8 @@ npm run dev          # http://localhost:3000
 
 ## 部署（Supabase ＋ Vercel）
 
+正式網址：https://wealth-blocks.vercel.app
+
 Supabase 專案在 **Northeast Asia (Tokyo) `ap-northeast-1`**，Vercel 函式區域在 `vercel.json` 固定為 **東京 `hnd1`**，兩邊同區，資料庫往返最短。
 
 Supabase 免費方案建專案時只能選大區域（Asia-Pacific），由 Supabase 依容量決定實際區域；Pro 方案才能指定（例如東京）。區域建好後不能改。若重建專案，先看 Connect 裡連線字串的區域代號，再把 `vercel.json` 改成[同區的 Vercel 區域](https://vercel.com/docs/regions)（例如 `ap-southeast-1` → `sin1`）。
@@ -86,13 +88,9 @@ Supabase 免費方案建專案時只能選大區域（Asia-Pacific），由 Supa
 
    - 重跑第一份之後，要把後面的也依序重跑：第一份會重設種子資料與權限。
    - **不要**執行 `supabase/local/auth_stub.sql`，那是給本機 PGlite 模擬 Supabase 用的。
-   - 跑完用下面這段確認權限：應該只有 `authenticated`，而且 `virtual_transactions`、`purchases`、`quest_completions`、`parent_settings_log` 只有 SELECT 與 INSERT。
-     ```sql
-     select grantee, table_name, string_agg(privilege_type, ', ' order by privilege_type)
-     from information_schema.role_table_grants where table_schema = 'wealth'
-     group by 1, 2 order by 2, 1;
-     ```
-3. 在 `.env.local`（以及 Vercel 的環境變數）設定，格式見 `.env.example`：
+   - 執行前確認編輯區**沒有選取文字**：有選取時 SQL Editor 只會執行選取的那段，畫面一樣顯示 Success。
+   - 跑完再執行 `supabase/verify.sql`（只讀）：8 項檢查（資料表、RLS、權限、帳本只能新增、anon 進不來、種子資料、第 2／3 份已套用）都應該是 OK；有「有問題」就依提示重跑對應的 migration。
+3. 在 Vercel 的環境變數設定，格式見 `.env.example`（本機 `.env.local` 不要填正式值，否則 `npm run dev` 會連到正式資料庫）：
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`（舊專案可用 `NEXT_PUBLIC_SUPABASE_ANON_KEY`）
    - `DATABASE_URL`：Supabase「Connect」裡的 **Transaction pooler**（port 6543）連線字串
@@ -105,7 +103,7 @@ Supabase 三個變數**只設一半會直接報錯**，正式環境（`NODE_ENV=
 ### Vercel
 
 1. Add New → Project → 匯入 GitHub repo，**Root Directory 選 `web`**（Framework 會自動偵測為 Next.js）。
-2. Environment Variables 填上面第 3 步的四個變數（Production 與 Preview 都要；`APP_SECRET` 兩邊用不同的值）。**不要**設 `WB_LOCAL_MODE`。
+2. Environment Variables 填上面第 3 步的四個變數：把 `KEY=值` 四行一起貼進第一個 Key 欄位，Vercel 會自動拆開，並套用到所有環境。**不要**設 `WB_LOCAL_MODE`。
 3. Deploy。之後推到 `main` 會自動部署正式環境，其他分支產生預覽網址。
 4. 部署好之後回到 Supabase 做第 4 步（Site URL 與 Redirect URLs）；預覽網址要登入的話也把它加進 Redirect URLs。
 

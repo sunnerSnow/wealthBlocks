@@ -18,8 +18,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
     <>
       <ParentTop />
       <main className="page page-narrow">
-        <section className="card p-6 sm:p-8">
-          <h1 className="text-[24px] font-extrabold leading-snug">用建造世界的方式，學會管理金錢。</h1>
+        <section className="card tagline-card p-6 sm:p-8">
+          <h1 className="tagline font-extrabold leading-snug">用建造世界的方式，學會管理金錢。</h1>
           <p className="mt-2 text-[15px] text-ink-2">請家長登入。孩子不需要自己的帳號，家長登入後可以把裝置交給孩子玩。</p>
           {error === "confirm" ? <p className="alert mt-5">確認連結無效或已過期，請重新登入或註冊。</p> : null}
 
