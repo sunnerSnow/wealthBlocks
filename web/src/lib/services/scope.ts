@@ -33,3 +33,14 @@ export async function requireChildScope(tx: Tx, userId: string, childId: string)
   if (!row) throw notFound("孩子");
   return { familyId, childId, ...row };
 }
+
+/** 鎖住孩子的遊戲檔案：同一個孩子的操作（放置、購買、存錢、領獎勵）在資料庫裡依序處理 */
+export async function lockChildScope(tx: Tx, userId: string, childId: string): Promise<ChildScope> {
+  const scope = await requireChildScope(tx, userId, childId);
+  await tx
+    .select({ id: gameProfiles.id })
+    .from(gameProfiles)
+    .where(and(eq(gameProfiles.id, scope.gameProfileId), eq(gameProfiles.familyId, scope.familyId)))
+    .for("update");
+  return scope;
+}

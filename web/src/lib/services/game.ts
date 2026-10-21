@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import type { Db } from "@/lib/db/local";
-import { children, gameProfiles, virtualWallets } from "@/lib/db/schema";
+import { children, gameProfiles, shopItems, virtualWallets } from "@/lib/db/schema";
 import { withUser } from "@/lib/db/with-user";
 import type { AgeBand, AvatarKey } from "@/lib/game/input";
 import { type XpProgress, xpProgress } from "@/lib/game/levels";
@@ -12,6 +12,8 @@ export interface GameStateDto {
   child: { id: string; displayName: string; avatarKey: AvatarKey; ageBand: AgeBand };
   progress: XpProgress;
   balance: number;
+  /** 正戴著的造型素材代號（沒戴是 null） */
+  equippedWear: string | null;
   island: IslandObjectDto[];
   inventory: InventoryItemDto[];
   recentTransactions: TxDto[];
@@ -26,8 +28,9 @@ export async function getGameState(db: Db, userId: string, childId: string): Pro
       .from(children)
       .where(and(eq(children.id, childId), eq(children.familyId, scope.familyId)));
     const [profile] = await tx
-      .select({ experience: gameProfiles.experience })
+      .select({ experience: gameProfiles.experience, equippedWear: shopItems.assetKey })
       .from(gameProfiles)
+      .leftJoin(shopItems, eq(shopItems.id, gameProfiles.equippedShopItemId))
       .where(and(eq(gameProfiles.id, scope.gameProfileId), eq(gameProfiles.familyId, scope.familyId)));
     const [wallet] = await tx
       .select({ balance: virtualWallets.balance })
@@ -40,6 +43,7 @@ export async function getGameState(db: Db, userId: string, childId: string): Pro
       child: { ...child, avatarKey: child.avatarKey as AvatarKey },
       progress: xpProgress(profile.experience),
       balance: wallet.balance,
+      equippedWear: profile.equippedWear ?? null,
       island,
       inventory,
       recentTransactions: await listTransactionsForWallet(tx, scope.familyId, scope.walletId, 5),

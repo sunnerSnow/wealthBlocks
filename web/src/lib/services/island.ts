@@ -1,11 +1,11 @@
 import { and, asc, eq, gt, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/lib/db/local";
-import { buildingDefinitions, gameProfiles, islandObjects, userInventory } from "@/lib/db/schema";
+import { buildingDefinitions, islandObjects, userInventory } from "@/lib/db/schema";
 import { type Tx, isUuid, withUser } from "@/lib/db/with-user";
 import { AppError, issuesFromZod, notFound, validationFailed } from "@/lib/errors";
 import { GRID_SIZE, checkPlacement } from "@/lib/game/island";
-import { type ChildScope, requireChildScope } from "@/lib/services/scope";
+import { type ChildScope, lockChildScope, requireChildScope } from "@/lib/services/scope";
 
 export interface BuildingDto {
   slug: string;
@@ -97,16 +97,6 @@ function parse<T>(schema: z.ZodType<T>, input: unknown): T {
   return parsed.data;
 }
 
-async function lockScope(tx: Tx, userId: string, childId: string): Promise<ChildScope> {
-  const scope = await requireChildScope(tx, userId, childId);
-  await tx
-    .select({ id: gameProfiles.id })
-    .from(gameProfiles)
-    .where(and(eq(gameProfiles.id, scope.gameProfileId), eq(gameProfiles.familyId, scope.familyId)))
-    .for("update");
-  return scope;
-}
-
 /** 伺服器端再檢查一次放置規則（前端的預覽只是提示） */
 async function assertPlaceable(tx: Tx, scope: ChildScope, candidate: { x: number; y: number; width: number; height: number }, ignoreId?: string) {
   const { objects } = await loadIsland(tx, scope);
@@ -133,7 +123,7 @@ async function findObject(tx: Tx, scope: ChildScope, objectId: string) {
 export async function placeObject(db: Db, userId: string, childId: string, input: unknown): Promise<IslandStateDto> {
   const { slug, x, y } = parse(placeSchema, input);
   return withUser(db, userId, async (tx) => {
-    const scope = await lockScope(tx, userId, childId);
+    const scope = await lockChildScope(tx, userId, childId);
     const [item] = await tx
       .select({ inventoryId: userInventory.id, quantity: userInventory.quantity, buildingId: buildingDefinitions.id, name: buildingDefinitions.name, width: buildingDefinitions.width, height: buildingDefinitions.height })
       .from(userInventory)
@@ -152,7 +142,7 @@ export async function placeObject(db: Db, userId: string, childId: string, input
 export async function moveObject(db: Db, userId: string, childId: string, objectId: string, input: unknown): Promise<IslandStateDto> {
   const { x, y } = parse(moveSchema, input);
   return withUser(db, userId, async (tx) => {
-    const scope = await lockScope(tx, userId, childId);
+    const scope = await lockChildScope(tx, userId, childId);
     const obj = await findObject(tx, scope, objectId);
     await assertPlaceable(tx, scope, { x, y, width: obj.width, height: obj.height }, obj.id);
     await tx.update(islandObjects).set({ gridX: x, gridY: y }).where(eq(islandObjects.id, obj.id));
@@ -163,7 +153,7 @@ export async function moveObject(db: Db, userId: string, childId: string, object
 /** 把島上的物件收回收藏 */
 export async function storeObject(db: Db, userId: string, childId: string, objectId: string): Promise<IslandStateDto> {
   return withUser(db, userId, async (tx) => {
-    const scope = await lockScope(tx, userId, childId);
+    const scope = await lockChildScope(tx, userId, childId);
     const obj = await findObject(tx, scope, objectId);
     await tx.delete(islandObjects).where(eq(islandObjects.id, obj.id));
     await tx

@@ -280,7 +280,7 @@ export function IslandBuilder({ childName, initial }: { childName: string; initi
           <Water />
           <div
             ref={gridRef}
-            className={`grid ${placing ? "placing" : ""}`}
+            className={`island-grid ${placing ? "placing" : ""}`}
             onClick={onGridClick}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
@@ -359,7 +359,7 @@ export function IslandBuilder({ childName, initial }: { childName: string; initi
                 ))}
               </div>
             ) : (
-              <p className="tray-empty">收藏裡沒有可以放的東西了。之後完成任務、存積木幣，就能得到更多建築。</p>
+              <p className="tray-empty">收藏裡沒有可以放的東西了。到商店買，或存滿儲蓄目標，就能得到更多建築。</p>
             )
           ) : null}
           {placing ? (

@@ -62,6 +62,8 @@ export const gameProfiles = wealth.table("game_profiles", {
   gameMode: text("game_mode", { enum: ["kids"] }).notNull().default("kids"),
   level: integer("level").notNull().default(1),
   experience: integer("experience").notNull().default(0),
+  // 20261022000000_phase3_economy.sql
+  equippedShopItemId: uuid("equipped_shop_item_id"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -161,6 +163,8 @@ export const questCompletions = wealth.table("quest_completions", {
   resultJson: jsonb("result_json").notNull().default({}),
   rewardTransactionId: uuid("reward_transaction_id"),
   rewarded: boolean("rewarded").notNull().default(false),
+  // 20261022000000_phase3_economy.sql
+  requestId: uuid("request_id"),
   completedAt: timestamp("completed_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 });
 

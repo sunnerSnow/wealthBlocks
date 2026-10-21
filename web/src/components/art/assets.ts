@@ -142,6 +142,29 @@ export const ASSETS: Record<string, () => Art> = {
     <path d="M33 41v-6.5q3.5-2 7 0q3.5-2 7 0V41q-3.5-2-7 0q-3.5-2-7 0Z" fill="#fff"/>
     <path d="M40 34.5V41" stroke="${C.navy}" stroke-width="1.2"/>
     ${stud(36, 15, C.navy)}`],
+  /* 任務故事插圖用（不能放到島上） */
+  car: () => [48, 32, `
+    <ellipse cx="24" cy="29.5" rx="20" ry="2.5" fill="${C.sh}"/>
+    <path d="M13 13l4-7h14l5 7Z" fill="${C.yel}"/>
+    <path d="M19 12l2.5-4h4V12Z M28 12V8h2.5l2.5 4Z" fill="#E8F6F2"/>
+    <rect x="4" y="13" width="40" height="11" rx="4" fill="${C.coral}"/>
+    <rect x="4" y="20" width="40" height="4" rx="2" fill="${C.coralD}"/>
+    <circle cx="13" cy="25" r="4.5" fill="${C.navy}"/><circle cx="13" cy="25" r="1.6" fill="${C.creamD}"/>
+    <circle cx="35" cy="25" r="4.5" fill="${C.navy}"/><circle cx="35" cy="25" r="1.6" fill="${C.creamD}"/>`],
+  cloud: () => [48, 40, `
+    <path d="M12 26a7 7 0 0 1 1-13.9A9 9 0 0 1 30 9a7.5 7.5 0 0 1 6 15Z" fill="#8C9AB0"/>
+    <path d="M14 30l-2 6M22 30l-2 6M30 30l-2 6" stroke="#5FA9C9" stroke-width="2.4" stroke-linecap="round"/>`],
+  "hat-explorer": () => [40, 32, `
+    <ellipse cx="20" cy="26" rx="18" ry="5" fill="${C.woodD}"/>
+    <ellipse cx="20" cy="24.5" rx="18" ry="4.5" fill="${C.wood}"/>
+    <path d="M8 24C8 8 32 8 32 24Z" fill="#D9A877"/>
+    <rect x="8.4" y="18.5" width="23.2" height="4" fill="${C.navy}"/>`],
+  "hat-cap": () => [40, 32, `
+    <path d="M26 22 L38 23.5 Q38 27.5 30 27Z" fill="${C.navyD}"/>
+    <path d="M6 24C6 8 30 8 30 24Z" fill="${C.navy}"/>
+    <rect x="6" y="22" width="24" height="3.5" rx="1.5" fill="${C.navyD}"/>
+    <path d="M18 11.5l1.2 2.5 2.7.4-2 1.9.5 2.7-2.4-1.3-2.4 1.3.5-2.7-2-1.9 2.7-.4Z" fill="${C.yel}"/>
+    <circle cx="18" cy="9" r="1.6" fill="${C.navyD}"/>`],
 };
 
 export function getArt(assetKey: string): Art {

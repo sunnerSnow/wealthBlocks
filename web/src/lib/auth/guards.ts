@@ -7,6 +7,8 @@ import { getDb } from "@/lib/db/client";
 import { AppError } from "@/lib/errors";
 import { getMyFamily } from "@/lib/services/family";
 import { getGameState } from "@/lib/services/game";
+import { listGoals } from "@/lib/services/goals";
+import { listQuests } from "@/lib/services/quests";
 
 /** 登入的家長、所屬家庭與這台裝置的模式（同一個請求內只查一次） */
 export const loadFamilyContext = cache(async () => {
@@ -38,4 +40,15 @@ export const requireKid = cache(async () => {
     if (error instanceof AppError && error.status === 404) redirect("/");
     throw error;
   }
+});
+
+/** 孩子模式的任務清單與目標（外框的右側欄和頁面共用，同一個請求只查一次） */
+export const kidQuests = cache(async () => {
+  const { db, user, state } = await requireKid();
+  return listQuests(db, user.id, state.child.id);
+});
+
+export const kidGoals = cache(async () => {
+  const { db, user, state } = await requireKid();
+  return listGoals(db, user.id, state.child.id);
 });

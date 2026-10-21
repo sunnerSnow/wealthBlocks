@@ -11,7 +11,13 @@ const HEADS: Record<AvatarKey, { head: string; stud: string; label: string }> = 
 
 export const AVATAR_LABEL = (key: AvatarKey) => HEADS[key].label;
 
-export function Avatar({ avatarKey, className = "av" }: { avatarKey: AvatarKey; className?: string }) {
+/** 戴在積木人頭上的造型（商店的「造型」商品，依素材代號） */
+const HATS: Record<string, string> = {
+  "hat-explorer": `<ellipse cx="24" cy="15" rx="21" ry="4.5" fill="${C.wood}"/><path d="M11 15C11 1 37 1 37 15Z" fill="#D9A877"/><rect x="11.3" y="10.5" width="25.4" height="4" fill="${C.navy}"/>`,
+  "hat-cap": `<path d="M34 13.5 L46 15.5 Q46 19.5 37 18.5Z" fill="${C.navyD}"/><path d="M9 16C9 1 37 1 37 16Z" fill="${C.navy}"/><rect x="9" y="13.5" width="28" height="3.5" rx="1.5" fill="${C.navyD}"/><path d="M23 4.5l1.2 2.5 2.7.4-2 1.9.5 2.7-2.4-1.3-2.4 1.3.5-2.7-2-1.9 2.7-.4Z" fill="${C.yel}"/>`,
+};
+
+export function Avatar({ avatarKey, hat, className = "av" }: { avatarKey: AvatarKey; hat?: string | null; className?: string }) {
   const h = HEADS[avatarKey] ?? HEADS.sun;
   return (
     <span className={className}>
@@ -24,6 +30,7 @@ export function Avatar({ avatarKey, className = "av" }: { avatarKey: AvatarKey; 
         <circle cx="13.5" cy="31" r="2.6" fill={C.coralL} opacity=".55" />
         <circle cx="34.5" cy="31" r="2.6" fill={C.coralL} opacity=".55" />
         <rect x="12" y="42" width="24" height="10" rx="4" fill={C.navy} />
+        {hat && HATS[hat] ? <g dangerouslySetInnerHTML={{ __html: HATS[hat] }} /> : null}
       </svg>
     </span>
   );

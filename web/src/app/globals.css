@@ -699,7 +699,7 @@ body {
     width: 10%;
     animation: bob 3.2s ease-in-out infinite;
   }
-  .grid {
+  .island-grid {
     position: relative;
     width: 100%;
     height: 100%;
@@ -1023,14 +1023,14 @@ body {
   .obj:focus-visible {
     outline-offset: 0;
   }
-  .grid.placing {
+  .island-grid.placing {
     touch-action: none;
     cursor: crosshair;
   }
-  .grid.placing .obj svg > * {
+  .island-grid.placing .obj svg > * {
     pointer-events: none;
   }
-  .grid:focus-visible {
+  .island-grid:focus-visible {
     outline: 3px solid var(--color-navy);
     outline-offset: 4px;
     border-radius: 14px;
