@@ -8,7 +8,7 @@
 - **Phase 2：可玩的積木島**：建造模式——從收藏放到島上、移動、收回，存在資料庫，重新登入後還在。手機點一下預覽、再點一下放下（也可以拖曳）；桌面滑鼠移過去預覽、點一下放下；鍵盤用方向鍵移動、Enter 放下、Esc 取消。放置規則（在陸地上、不重疊、收藏裡要有）在伺服器再檢查一次。
 - **Phase 3：虛擬經濟**：5 個理財任務（兩步驟：情境與選擇 → 結果與反思；不論選哪個獎勵都一樣，第一次完成才發、重玩只記錄）、升級與解鎖、商店（價格、餘額、等級、限購都由伺服器檢查）、造型（戴帽子）、儲蓄目標（目標金額由伺服器決定、存入／取回、存滿解鎖建築放進收藏）、學習紀錄。所有積木幣變動都記帳，重送同一個請求不會重複扣款或發獎勵。
 - **Phase 4：家長中心**：每位孩子的學習進度頁（完成的任務、接觸過的理財主題、最近的選擇，不排名、不用積木幣評價孩子）、親子聊聊題目（最近任務的思考題＋內建題庫，每天輪替）、虛擬零用錢（每週或每兩週、星期幾、金額；到期時孩子打開遊戲自動入帳，最多補發 4 期）、「孩子能不能自己設定儲蓄目標」開關（關掉時家長在進度頁幫孩子建立）、設定變更紀錄（時間、操作者、前後的值，只能新增）。
-- **Phase 5：品質與部署**：錯誤頁與找不到頁面（孩子看得懂的文字，不顯示技術細節）、伺服器錯誤的結構化日誌、安全標頭、Playwright 端對端測試（規格 15 的完成定義＋權限隔離）、GitHub Actions CI、Vercel 區域設定（新加坡，與資料庫同區）、資料匯出腳本。
+- **Phase 5：品質與部署**：錯誤頁與找不到頁面（孩子看得懂的文字，不顯示技術細節）、伺服器錯誤的結構化日誌、安全標頭、Playwright 端對端測試（規格 15 的完成定義＋權限隔離）、GitHub Actions CI、Vercel 區域設定（東京，與資料庫同區）、資料匯出腳本。
 
 技術：Next.js 16.4（App Router）＋ TypeScript ＋ Tailwind 4 ＋ Drizzle ORM ＋ PostgreSQL（正式環境用 Supabase，本機與測試用 PGlite）＋ Vitest ＋ Playwright。
 
@@ -72,9 +72,9 @@ npm run dev          # http://localhost:3000
 
 ## 部署（Supabase ＋ Vercel）
 
-Supabase 專案在 **Southeast Asia (Singapore) `ap-southeast-1`**，Vercel 函式區域在 `vercel.json` 固定為 **新加坡 `sin1`**，兩邊同區，資料庫往返最短。
+Supabase 專案在 **Northeast Asia (Tokyo) `ap-northeast-1`**，Vercel 函式區域在 `vercel.json` 固定為 **東京 `hnd1`**，兩邊同區，資料庫往返最短。
 
-Supabase 免費方案建專案時只能選大區域（Asia-Pacific），由 Supabase 依容量決定實際區域；Pro 方案才能指定（例如東京）。區域建好後不能改。若重建專案，先看 Connect 裡連線字串的區域代號，再把 `vercel.json` 改成[同區的 Vercel 區域](https://vercel.com/docs/regions)（例如 `ap-northeast-1` → `hnd1`）。
+Supabase 免費方案建專案時只能選大區域（Asia-Pacific），由 Supabase 依容量決定實際區域；Pro 方案才能指定（例如東京）。區域建好後不能改。若重建專案，先看 Connect 裡連線字串的區域代號，再把 `vercel.json` 改成[同區的 Vercel 區域](https://vercel.com/docs/regions)（例如 `ap-southeast-1` → `sin1`）。
 
 ### Supabase
 
