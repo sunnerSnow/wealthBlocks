@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { startPlayingAction } from "@/app/actions";
 import { Avatar } from "@/components/avatar";
 import { Coin } from "@/components/brand";
@@ -22,7 +23,7 @@ export default async function FamilyPage() {
       <main className="page">
         <div className="view-head">
           <h1>{family.name}</h1>
-          <p>{family.parentName}，選一位孩子開始玩。交給孩子之後，要回到這裡得輸入家長 PIN。</p>
+          <p>{family.parentName}，可以看孩子的學習進度、設定零用錢，或選一位孩子開始玩。交給孩子之後，要回到這裡得輸入家長 PIN。</p>
         </div>
 
         <ul className="kid-list">
@@ -39,13 +40,18 @@ export default async function FamilyPage() {
                   <span className="num">{k.balance}</span> 積木幣
                 </span>
               </div>
-              <form action={startPlayingAction}>
-                <input type="hidden" name="childId" value={k.id} />
-                <button className="btn btn-primary btn-sm" type="submit">
-                  <Icon name="play" />
-                  開始玩
-                </button>
-              </form>
+              <div className="actions">
+                <Link className="btn btn-sm" href={`/family/children/${k.id}`}>
+                  學習進度
+                </Link>
+                <form action={startPlayingAction}>
+                  <input type="hidden" name="childId" value={k.id} />
+                  <button className="btn btn-primary btn-sm" type="submit">
+                    <Icon name="play" />
+                    開始玩
+                  </button>
+                </form>
+              </div>
             </li>
           ))}
         </ul>

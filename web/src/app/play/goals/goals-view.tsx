@@ -143,18 +143,25 @@ export function GoalsView({ initial }: { initial: GoalsDto }) {
   return (
     <>
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          className="btn btn-sm"
-          disabled={full}
-          onClick={() => setCreate({ pick: data.options[0]?.slug ?? "custom", title: "", target: 100 })}
-        >
-          <Icon name="plus" />
-          新增目標
-        </button>
+        {data.canCreate ? (
+          <button
+            type="button"
+            className="btn btn-sm"
+            disabled={full}
+            onClick={() => setCreate({ pick: data.options[0]?.slug ?? "custom", title: "", target: 100 })}
+          >
+            <Icon name="plus" />
+            新增目標
+          </button>
+        ) : (
+          <span className="ghint m-0">
+            <Icon name="info" />
+            儲蓄目標由家長幫你設定，想存什麼可以跟家長討論。
+          </span>
+        )}
         <span className="text-[14px] text-ink-2">錢包裡有 {data.balance} 積木幣</span>
       </div>
-      {full ? (
+      {full && data.canCreate ? (
         <p className="ghint">
           <Icon name="info" />
           一次最多 {data.maxActive} 個進行中的目標，先完成或取回其中一個吧。
@@ -165,7 +172,9 @@ export function GoalsView({ initial }: { initial: GoalsDto }) {
         {active.length ? (
           active.map((g) => <GoalCard key={g.id} goal={g} />)
         ) : (
-          <p className="card p-5 text-ink-2">還沒有儲蓄目標。按「新增目標」，挑一個想要的建築開始存積木幣吧！</p>
+          <p className="card p-5 text-ink-2">
+            {data.canCreate ? "還沒有儲蓄目標。按「新增目標」，挑一個想要的建築開始存積木幣吧！" : "還沒有儲蓄目標。可以跟家長說說你想存錢買什麼。"}
+          </p>
         )}
       </div>
       {completed.length ? (

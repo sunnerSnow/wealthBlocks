@@ -7,6 +7,7 @@
 - **Phase 1：專案基礎**：家長登入、建立家庭與孩子檔案（含遊戲檔案、錢包、初始積木幣、新手禮包）、家長 PIN、孩子模式外框（積木島、帳本、個人頁），以及兒童版 MVP 全部資料表、RLS 與種子資料（5 個任務、9 種商品、10 種建築）。
 - **Phase 2：可玩的積木島**：建造模式——從收藏放到島上、移動、收回，存在資料庫，重新登入後還在。手機點一下預覽、再點一下放下（也可以拖曳）；桌面滑鼠移過去預覽、點一下放下；鍵盤用方向鍵移動、Enter 放下、Esc 取消。放置規則（在陸地上、不重疊、收藏裡要有）在伺服器再檢查一次。
 - **Phase 3：虛擬經濟**：5 個理財任務（兩步驟：情境與選擇 → 結果與反思；不論選哪個獎勵都一樣，第一次完成才發、重玩只記錄）、升級與解鎖、商店（價格、餘額、等級、限購都由伺服器檢查）、造型（戴帽子）、儲蓄目標（目標金額由伺服器決定、存入／取回、存滿解鎖建築放進收藏）、學習紀錄。所有積木幣變動都記帳，重送同一個請求不會重複扣款或發獎勵。
+- **Phase 4：家長中心**：每位孩子的學習進度頁（完成的任務、接觸過的理財主題、最近的選擇，不排名、不用積木幣評價孩子）、親子聊聊題目（最近任務的思考題＋內建題庫，每天輪替）、虛擬零用錢（每週或每兩週、星期幾、金額；到期時孩子打開遊戲自動入帳，最多補發 4 期）、「孩子能不能自己設定儲蓄目標」開關（關掉時家長在進度頁幫孩子建立）、設定變更紀錄（時間、操作者、前後的值，只能新增）。
 
 技術：Next.js 16.4（App Router）＋ TypeScript ＋ Tailwind 4 ＋ Drizzle ORM ＋ PostgreSQL（正式環境用 Supabase，本機與測試用 PGlite）＋ Vitest。
 
@@ -29,6 +30,7 @@ npm run dev          # http://localhost:3000
 - **登入的是家長**（Supabase Auth，Email＋密碼）。孩子沒有自己的帳密，是家長帳號底下的「孩子檔案」，只收暱稱、年齡區間與頭像顏色。
 - 第一次登入 → `/setup` 建立家庭：家庭名稱、家長稱呼、**家長 PIN（4 位數）**、第一位孩子。
 - `/family` 家長區：看每位孩子的等級與積木幣、新增孩子、按「開始玩」把裝置交給孩子。
+- `/family/children/[id]` 孩子的學習進度、親子聊聊、儲蓄目標、零用錢與權限設定、變更紀錄、近期帳本。
 - `/play` 孩子模式：積木島、任務、商店、目標、我的（帳本從頂端的積木幣或桌面側欄進入）。孩子按「換人玩」會回到 `/`「誰要來玩？」。
 - 從孩子模式或「誰要來玩？」回到家長區要輸入 PIN；連續輸錯 5 次鎖 10 分鐘。
 - 這兩種模式記在 HMAC 簽章的 cookie（`wb_parent` 12 小時、`wb_kid`），綁定登入的家長帳號，竄改或拿到別的帳號都無效；刪掉 cookie 只會回到「誰要來玩？」，不會變成家長。
@@ -62,6 +64,7 @@ npm run dev          # http://localhost:3000
 | POST | `/api/shop/equip` | 戴上／摘下造型 `{ slug \| null }` |
 | GET／POST | `/api/goals` | 目標清單／建立 `{ reward }` 或 `{ title, target }` |
 | POST | `/api/goals/:id/contribute`、`/withdraw` | 存入／取回 `{ amount, requestId }` |
+| GET | `/api/parent/progress?childId=…` | 家長看孩子的學習進度（要在家長模式） |
 
 會動到積木幣的請求都要帶 `requestId`（每次「確認」產生一個 UUID）：重送同一個編號，伺服器只處理一次。
 
@@ -72,10 +75,11 @@ npm run dev          # http://localhost:3000
 2. 到 **SQL Editor** 依檔名順序貼上並執行 `supabase/migrations/` 裡的每一份（都可重複執行）：
    1. `20261021000000_phase1_foundation.sql`（全部資料表、RLS、種子資料）
    2. `20261022000000_phase3_economy.sql`（造型、任務重送、目標唯一限制、夢想小屋目標金額）
+   3. `20261023000000_phase4_parent.sql`（孩子設定與零用錢、設定變更紀錄）
 
    - 重跑第一份之後，要把後面的也依序重跑：第一份會重設種子資料與權限。
    - **不要**執行 `supabase/local/auth_stub.sql`，那是給本機 PGlite 模擬 Supabase 用的。
-   - 跑完用下面這段確認權限：應該只有 `authenticated`，而且 `virtual_transactions`、`purchases`、`quest_completions` 只有 SELECT 與 INSERT。
+   - 跑完用下面這段確認權限：應該只有 `authenticated`，而且 `virtual_transactions`、`purchases`、`quest_completions`、`parent_settings_log` 只有 SELECT 與 INSERT。
      ```sql
      select grantee, table_name, string_agg(privilege_type, ', ' order by privilege_type)
      from information_schema.role_table_grants where table_schema = 'wealth'
@@ -124,14 +128,16 @@ src/
     ├── auth/             session、家長 PIN、模式 cookie、頁面守門
     ├── db/               Drizzle schema、PGlite、withUser
     ├── client/           前端呼叫 API、產生請求編號
-    ├── game/             純規則：等級、島嶼格線、任務結果、經濟設定、輸入驗證
-    └── services/         家庭、孩子、帳本、島嶼、任務、商店、儲蓄目標
+    ├── game/             純規則：等級、島嶼格線、任務結果、零用錢時間、親子題目、經濟設定、輸入驗證
+    └── services/         家庭、孩子、帳本、島嶼、任務、商店、儲蓄目標、孩子設定與零用錢、家長進度
 supabase/migrations/      SQL migration（RLS 與權限以這裡為準）
 tests/                    Vitest
 ```
 
 ## 尚未完成
 
-- Phase 4：家長中心的學習進度、虛擬零用錢規則、親子討論題目。目前積木幣只有「初始 100」和「任務獎勵」兩個來源（共 150），零用錢在 Phase 4 由家長設定。
-- Playwright 端對端測試尚未放進專案（Phase 1–3 的流程是用 scratchpad 的腳本跑過）。
+- 零用錢沒有排程器：孩子打開遊戲或家長看進度時才結算到期的期數（帳本時間是結算的時間，不是發放日）。
+- 孩子檔案的編輯與刪除（規格 6.4 的資料刪除要求）、第二位家長加入同一個家庭。
+- 依年齡區間調整任務文字難度（目前 5 個任務都是 6–12 歲共用）。
+- Playwright 端對端測試尚未放進專案（Phase 1–4 的流程是用 scratchpad 的腳本跑過）。
 - Supabase 專案還沒建、migration 還沒在 SQL Editor 跑、還沒部署。

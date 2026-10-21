@@ -9,6 +9,7 @@ import { getMyFamily } from "@/lib/services/family";
 import { getGameState } from "@/lib/services/game";
 import { listGoals } from "@/lib/services/goals";
 import { listQuests } from "@/lib/services/quests";
+import { settleAllowance } from "@/lib/services/settings";
 
 /** 登入的家長、所屬家庭與這台裝置的模式（同一個請求內只查一次） */
 export const loadFamilyContext = cache(async () => {
@@ -34,6 +35,8 @@ export const requireKid = cache(async () => {
   const childId = ctx.mode.kidChildId;
   if (!childId) redirect("/");
   try {
+    // 先發放到期的零用錢，畫面上的積木幣才會是最新的
+    await settleAllowance(ctx.db, ctx.user.id, childId);
     const state = await getGameState(ctx.db, ctx.user.id, childId);
     return { ...ctx, family: ctx.family, state };
   } catch (error) {

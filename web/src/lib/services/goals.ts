@@ -8,6 +8,7 @@ import { AppError, issuesFromZod, notFound, validationFailed } from "@/lib/error
 import { addBuildingToInventory, getExperience, ownedBuildingCount } from "@/lib/services/inventory";
 import { postVirtualTransaction } from "@/lib/services/ledger";
 import { type ChildScope, lockChildScope, requireChildScope } from "@/lib/services/scope";
+import { readSettings } from "@/lib/services/settings";
 
 export const MAX_ACTIVE_GOALS = 3;
 
@@ -38,6 +39,8 @@ export interface GoalsDto {
   /** 可以拿來當目標獎勵的建築 */
   options: GoalOptionDto[];
   maxActive: number;
+  /** 孩子能不能自己建立目標（家長在家長中心設定；不能時由家長建立） */
+  canCreate: boolean;
 }
 
 export interface GoalMoveDto {
@@ -132,6 +135,7 @@ export async function listGoals(db: Db, userId: string, childId: string): Promis
       goals: await loadGoals(tx, scope),
       options: (await rewardOptions(tx, scope)).map((o) => ({ slug: o.slug, name: o.name, assetKey: o.assetKey, target: o.target })),
       maxActive: MAX_ACTIVE_GOALS,
+      canCreate: (await readSettings(tx, scope)).allowChildGoals,
     };
   });
 }
@@ -145,14 +149,20 @@ const createSchema = z.union([
   }),
 ]);
 
-/** 建立目標：獎勵建築的目標金額由伺服器決定；自訂目標（沒有獎勵）才能自己填金額 */
-export async function createGoal(db: Db, userId: string, childId: string, input: unknown): Promise<GoalDto> {
+/**
+ * 建立目標：獎勵建築的目標金額由伺服器決定；自訂目標（沒有獎勵）才能自己填金額。
+ * byParent：家長在家長中心幫孩子建立（呼叫端要先確認是家長模式）；孩子自己建立時要看家長的設定。
+ */
+export async function createGoal(db: Db, userId: string, childId: string, input: unknown, opts: { byParent?: boolean } = {}): Promise<GoalDto> {
   const parsed = createSchema.safeParse(input);
   if (!parsed.success) throw validationFailed(issuesFromZod(parsed.error));
   const data = parsed.data;
   try {
     return await withUser(db, userId, async (tx) => {
       const scope = await lockChildScope(tx, userId, childId);
+      if (!opts.byParent && !(await readSettings(tx, scope)).allowChildGoals) {
+        throw new AppError("goals_by_parent", "目前由家長幫你設定儲蓄目標，可以跟家長討論想存什麼", 403);
+      }
       const [{ n }] = await tx
         .select({ n: sql<number>`count(*)::int` })
         .from(savingsGoals)

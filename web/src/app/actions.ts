@@ -14,6 +14,8 @@ import { getDb } from "@/lib/db/client";
 import { AppError } from "@/lib/errors";
 import { addChild, listChildren } from "@/lib/services/children";
 import { checkParentPin, setupFamily } from "@/lib/services/family";
+import { createGoal } from "@/lib/services/goals";
+import { updateChildSettings } from "@/lib/services/settings";
 
 /**
  * Server Actions 都是公開的 POST 端點：每一個都自己檢查登入與模式，輸入一律交給服務層驗證。
@@ -189,4 +191,56 @@ export async function unlockParentAction(_prev: FormState, formData: FormData): 
   }
   await grantParentMode(user.id);
   redirect("/family");
+}
+
+// ---------------------------------------------------------------------------
+// 家長中心（都要在家長模式）
+// ---------------------------------------------------------------------------
+
+async function parentOrRedirect() {
+  const user = await sessionOrRedirect();
+  if (!(await readPlayMode(user.id)).parentUnlocked) redirect("/family/unlock");
+  return user;
+}
+
+const intOf = (fd: FormData, key: string) => {
+  const v = text(fd, key);
+  return v === undefined || v.trim() === "" ? undefined : Number(v);
+};
+
+export async function updateChildSettingsAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const user = await parentOrRedirect();
+  const childId = text(formData, "childId") ?? "";
+  try {
+    await updateChildSettings(await getDb(), user.id, childId, {
+      allowanceEnabled: formData.get("allowanceEnabled") === "on",
+      allowanceAmount: intOf(formData, "allowanceAmount"),
+      allowanceInterval: intOf(formData, "allowanceInterval"),
+      allowanceWeekday: intOf(formData, "allowanceWeekday"),
+      allowChildGoals: formData.get("allowChildGoals") === "on",
+    });
+  } catch (error) {
+    return toFormState(error);
+  }
+  revalidatePath(`/family/children/${childId}`);
+  return { done: true };
+}
+
+export async function parentCreateGoalAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const user = await parentOrRedirect();
+  const childId = text(formData, "childId") ?? "";
+  const reward = text(formData, "reward") ?? "";
+  try {
+    await createGoal(
+      await getDb(),
+      user.id,
+      childId,
+      reward === "custom" ? { title: text(formData, "title"), target: intOf(formData, "target") } : { reward },
+      { byParent: true },
+    );
+  } catch (error) {
+    return { ...toFormState(error), values: keepValues(formData, ["reward", "title", "target"]) };
+  }
+  revalidatePath(`/family/children/${childId}`);
+  return { done: true };
 }

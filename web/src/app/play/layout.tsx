@@ -8,7 +8,6 @@ import { LocalBanner } from "@/components/local-banner";
 import { TxList } from "@/components/tx-list";
 import { kidGoals, kidQuests, requireKid } from "@/lib/auth/guards";
 import { KidsNav } from "./kids-nav";
-import "./economy.css";
 
 /** 孩子模式外框：頂端（積木幣、等級、頭像）＋導覽＋桌面右側欄；每個頁面仍會自己呼叫 requireKid */
 export default async function PlayLayout({ children }: LayoutProps<"/play">) {

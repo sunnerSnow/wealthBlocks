@@ -42,6 +42,11 @@ export async function readJson(request: Request): Promise<unknown> {
   }
 }
 
+/** 家長中心的 API：這台裝置要在家長模式（登入或輸入 PIN 之後） */
+export async function requireParentUnlocked(user: SessionUser): Promise<void> {
+  if (!(await readPlayMode(user.id)).parentUnlocked) throw new AppError("parent_locked", "請先輸入家長 PIN", 403);
+}
+
 /** 孩子模式的 API：孩子由簽章 cookie 決定，不從網址或內容帶入 */
 export async function requireActiveChild(user: SessionUser): Promise<string> {
   const { kidChildId } = await readPlayMode(user.id);

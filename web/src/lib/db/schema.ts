@@ -216,6 +216,36 @@ export const islandObjects = wealth.table("island_objects", {
   updatedAt: updatedAt(),
 });
 
+// 20261023000000_phase4_parent.sql
+export const childSettings = wealth.table("child_settings", {
+  childId: uuid("child_id").primaryKey(),
+  familyId: uuid("family_id").notNull(),
+  allowanceEnabled: boolean("allowance_enabled").notNull().default(false),
+  allowanceAmount: coins("allowance_amount").notNull().default(20),
+  allowanceInterval: integer("allowance_interval").notNull().default(7),
+  allowanceWeekday: integer("allowance_weekday").notNull().default(6),
+  allowanceAnchorAt: timestamp("allowance_anchor_at", { withTimezone: true, mode: "string" }),
+  allowanceLastPeriod: integer("allowance_last_period").notNull().default(-1),
+  allowChildGoals: boolean("allow_child_goals").notNull().default(true),
+  updatedBy: uuid("updated_by"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const SETTING_KEYS = ["allowance_enabled", "allowance_amount", "allowance_interval", "allowance_weekday", "allow_child_goals"] as const;
+export type SettingKey = (typeof SETTING_KEYS)[number];
+
+export const parentSettingsLog = wealth.table("parent_settings_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  familyId: uuid("family_id").notNull(),
+  childId: uuid("child_id"),
+  actorUserId: uuid("actor_user_id").notNull(),
+  setting: text("setting", { enum: SETTING_KEYS }).notNull(),
+  oldValue: jsonb("old_value"),
+  newValue: jsonb("new_value"),
+  createdAt: createdAt(),
+});
+
 export const schema = {
   profiles,
   families,
@@ -232,4 +262,6 @@ export const schema = {
   userInventory,
   purchases,
   islandObjects,
+  childSettings,
+  parentSettingsLog,
 };
