@@ -1,4 +1,5 @@
 import "server-only";
+import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js";
@@ -32,5 +33,8 @@ async function createDb(): Promise<Db> {
   }
   if (!isLocalMode()) throw new Error("缺少 DATABASE_URL");
   const dataDir = process.env.PGLITE_DATA_DIR ?? path.join(process.cwd(), ".data", "pglite");
-  return openLocalDb(new PGlite(dataDir === "memory://" ? undefined : dataDir));
+  if (dataDir === "memory://") return openLocalDb(new PGlite());
+  // PGlite 只會建立最後一層資料夾；第一次啟動時 .data 還不存在，要先把整條路徑建好
+  await mkdir(dataDir, { recursive: true });
+  return openLocalDb(new PGlite(dataDir));
 }
