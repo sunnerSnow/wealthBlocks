@@ -8,8 +8,9 @@
 - **Phase 2：可玩的積木島**：建造模式——從收藏放到島上、移動、收回，存在資料庫，重新登入後還在。手機點一下預覽、再點一下放下（也可以拖曳）；桌面滑鼠移過去預覽、點一下放下；鍵盤用方向鍵移動、Enter 放下、Esc 取消。放置規則（在陸地上、不重疊、收藏裡要有）在伺服器再檢查一次。
 - **Phase 3：虛擬經濟**：5 個理財任務（兩步驟：情境與選擇 → 結果與反思；不論選哪個獎勵都一樣，第一次完成才發、重玩只記錄）、升級與解鎖、商店（價格、餘額、等級、限購都由伺服器檢查）、造型（戴帽子）、儲蓄目標（目標金額由伺服器決定、存入／取回、存滿解鎖建築放進收藏）、學習紀錄。所有積木幣變動都記帳，重送同一個請求不會重複扣款或發獎勵。
 - **Phase 4：家長中心**：每位孩子的學習進度頁（完成的任務、接觸過的理財主題、最近的選擇，不排名、不用積木幣評價孩子）、親子聊聊題目（最近任務的思考題＋內建題庫，每天輪替）、虛擬零用錢（每週或每兩週、星期幾、金額；到期時孩子打開遊戲自動入帳，最多補發 4 期）、「孩子能不能自己設定儲蓄目標」開關（關掉時家長在進度頁幫孩子建立）、設定變更紀錄（時間、操作者、前後的值，只能新增）。
+- **Phase 5：品質與部署**：錯誤頁與找不到頁面（孩子看得懂的文字，不顯示技術細節）、伺服器錯誤的結構化日誌、安全標頭、Playwright 端對端測試（規格 15 的完成定義＋權限隔離）、GitHub Actions CI、Vercel 東京區域設定、資料匯出腳本。
 
-技術：Next.js 16.4（App Router）＋ TypeScript ＋ Tailwind 4 ＋ Drizzle ORM ＋ PostgreSQL（正式環境用 Supabase，本機與測試用 PGlite）＋ Vitest。
+技術：Next.js 16.4（App Router）＋ TypeScript ＋ Tailwind 4 ＋ Drizzle ORM ＋ PostgreSQL（正式環境用 Supabase，本機與測試用 PGlite）＋ Vitest ＋ Playwright。
 
 ## 快速開始（本機示範模式，不需要 Supabase）
 
@@ -69,9 +70,13 @@ npm run dev          # http://localhost:3000
 會動到積木幣的請求都要帶 `requestId`（每次「確認」產生一個 UUID）：重送同一個編號，伺服器只處理一次。
 
 
-## 接上 Supabase（正式環境）
+## 部署（Supabase ＋ Vercel）
 
-1. 建立 Supabase 專案。
+Supabase 專案建在 **Northeast Asia (Tokyo) `ap-northeast-1`**，Vercel 函式區域在 `vercel.json` 固定為 **東京 `hnd1`**，兩邊同區，資料庫往返最短。
+
+### Supabase
+
+1. 建立 Supabase 專案（區域選 Tokyo；資料庫密碼存到密碼管理工具，不要貼到聊天或程式碼裡）。
 2. 到 **SQL Editor** 依檔名順序貼上並執行 `supabase/migrations/` 裡的每一份（都可重複執行）：
    1. `20261021000000_phase1_foundation.sql`（全部資料表、RLS、種子資料）
    2. `20261022000000_phase3_economy.sql`（造型、任務重送、目標唯一限制、夢想小屋目標金額）
@@ -95,6 +100,38 @@ npm run dev          # http://localhost:3000
 
 Supabase 三個變數**只設一半會直接報錯**，正式環境（`NODE_ENV=production`）沒設也會報錯，不會默默改用本機資料庫。
 
+### Vercel
+
+1. Add New → Project → 匯入 GitHub repo，**Root Directory 選 `web`**（Framework 會自動偵測為 Next.js）。
+2. Environment Variables 填上面第 3 步的四個變數（Production 與 Preview 都要；`APP_SECRET` 兩邊用不同的值）。**不要**設 `WB_LOCAL_MODE`。
+3. Deploy。之後推到 `main` 會自動部署正式環境，其他分支產生預覽網址。
+4. 部署好之後回到 Supabase 做第 4 步（Site URL 與 Redirect URLs）；預覽網址要登入的話也把它加進 Redirect URLs。
+
+## 品質與維運
+
+- **錯誤處理**：`app/error.tsx`（一般頁面）、`app/play/error.tsx`（孩子模式，保留外框與導覽）、`app/not-found.tsx`、`app/global-error.tsx`（連 layout 都壞掉時）。只顯示孩子看得懂的話與「再試一次」，錯誤代碼（digest）小字顯示，方便對照日誌。
+- **日誌**：`src/instrumentation.ts` 的 `onRequestError` 把伺服器錯誤記成一行 JSON（路徑、方法、路由、digest、錯誤類型、PostgreSQL 錯誤碼、訊息第一行），不記請求內容。到 Vercel 專案的 Logs 用 `wealth-blocks` 或 digest 搜尋。
+- **安全標頭**（`next.config.ts`）：`X-Frame-Options: DENY`、`X-Content-Type-Options: nosniff`、`Referrer-Policy: strict-origin-when-cross-origin`、`Permissions-Policy` 關掉相機、麥克風、定位、付款、USB。
+- **端對端測試**（`e2e/`，`npm run test:e2e`）：會先 `npm run build`，再用 `next start` 在 port 3330 跑本機示範模式（記憶體內 PGlite，每次全新；Supabase 變數一律清空，不會碰到正式資料）。瀏覽器用電腦上的 Chrome。
+  - `kids-journey.spec.ts`：手機尺寸一路玩完規格 15 的流程——建立家庭 → 3 個任務（含重玩不再發獎勵）→ 重送請求不重複扣款 → 商店買 3 種商品、錢不夠的提示 → 儲蓄目標存入／取回／存滿解鎖 → 島上放置、移動、重新整理後還在 → 帳本加總等於餘額 → 家長 PIN（輸錯提示）、學習進度、零用錢與權限設定。
+  - `isolation.spec.ts`：未登入 401、別人的孩子 404、偽造模式 cookie 無效、孩子模式呼叫家長 API 403、跨站寫入 403。
+  - 失敗時 `test-results/` 會留 trace，用 `npx playwright show-trace <檔案>` 看。
+- **CI**（repo 根目錄 `.github/workflows/ci.yml`）：推到 `main` 或開 PR 時跑 typecheck、lint、Vitest、Playwright；失敗會上傳 trace。
+
+### 備份
+
+Supabase **免費方案沒有自動備份**（Pro 方案才有每日備份，保留 7 天），要自己定期匯出、放在 Supabase 以外的地方：
+
+- **資料**：`npm run export-data`（需要先設 `DATABASE_URL`），把 `wealth` schema 每張表匯出成 `web/backups/wealth-<時間>.json`。只讀不寫。檔案裡有孩子的暱稱，`backups/` 已在 .gitignore，不要上傳到公開的地方。
+- **完整備份**（含 `auth` 帳號）：安裝 [Supabase CLI](https://supabase.com/docs/guides/cli) 後
+  ```bash
+  supabase db dump --db-url "$DATABASE_URL" -f schema.sql
+  supabase db dump --db-url "$DATABASE_URL" -f data.sql --data-only
+  ```
+  用 Session pooler（port 5432）的連線字串比較穩。
+- 資料表結構、RLS、種子資料本來就在 `supabase/migrations/`，重建時先跑 migration 再匯入資料。
+- 免費專案一週沒有活動會被暫停，在 Supabase 後台按一下就能恢復，資料不會不見。
+
 ## 指令
 
 | 指令 | 用途 |
@@ -104,6 +141,8 @@ Supabase 三個變數**只設一半會直接報錯**，正式環境（`NODE_ENV=
 | `npm run typecheck` | 產生路由型別並檢查 TypeScript |
 | `npm run lint` | ESLint |
 | `npm run build` | 正式建置 |
+| `npm run test:e2e` | Playwright 端對端測試（自動建置並啟動在 port 3330） |
+| `npm run export-data` | 把正式資料庫 `wealth` schema 匯出成 JSON（需要 `DATABASE_URL`） |
 
 ## 字型
 
@@ -132,6 +171,8 @@ src/
     └── services/         家庭、孩子、帳本、島嶼、任務、商店、儲蓄目標、孩子設定與零用錢、家長進度
 supabase/migrations/      SQL migration（RLS 與權限以這裡為準）
 tests/                    Vitest
+e2e/                      Playwright
+scripts/                  字型分片、資料匯出
 ```
 
 ## 尚未完成
@@ -139,5 +180,6 @@ tests/                    Vitest
 - 零用錢沒有排程器：孩子打開遊戲或家長看進度時才結算到期的期數（帳本時間是結算的時間，不是發放日）。
 - 孩子檔案的編輯與刪除（規格 6.4 的資料刪除要求）、第二位家長加入同一個家庭。
 - 依年齡區間調整任務文字難度（目前 5 個任務都是 6–12 歲共用）。
-- Playwright 端對端測試尚未放進專案（Phase 1–4 的流程是用 scratchpad 的腳本跑過）。
-- Supabase 專案還沒建、migration 還沒在 SQL Editor 跑、還沒部署。
+- 除了 PIN 鎖定與請求編號之外沒有頻率限制（rate limiting）；登入的頻率限制靠 Supabase Auth 本身。
+- 沒有 Content-Security-Policy（Next 的內嵌腳本要搭配 nonce，之後再加）。
+- 沒有錯誤追蹤服務（Sentry 之類），目前靠 Vercel 的日誌。
